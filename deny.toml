@@ -90,8 +90,9 @@ ignore = [
 # [possible values: any SPDX 3.11 short identifier (+ optional exception)].
 allow = [
     "ISC",
-    #"MIT",
-    #"Apache-2.0",
+    "MIT",
+    "Apache-2.0",
+    "Unicode-3.0",
     #"Apache-2.0 WITH LLVM-exception",
 ]
 # The confidence threshold for detecting a license from license text.
@@ -151,7 +152,7 @@ wildcards = "allow"
 # * lowest-version - The path to the lowest versioned duplicate is highlighted
 # * simplest-path - The path to the version with the fewest edges is highlighted
 # * all - Both lowest-version and simplest-path are used
-highlight = "all"
+highlight = "lowest-version"
 # The default lint level for `default` features for crates that are members of
 # the workspace that is being checked. This can be overridden by allowing/denying
 # `default` on a crate-by-crate basis if desired.
@@ -199,6 +200,7 @@ deny = [
 
 # Certain crates/versions that will be skipped when doing duplicate detection.
 skip = [
+    "windows-sys",
     #"ansi_term@0.11.0",
     #{ crate = "ansi_term@0.11.0", reason = "you can specify a reason why it can't be updated/removed" },
 ]

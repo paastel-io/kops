@@ -5,12 +5,12 @@ members = ["crates/*", "kopsctl", "kopsd"]
 [workspace.package]
 authors = ["murilo ijanc <murilo@ijanc.org>"]
 categories = ["command-line-utilities", "development-tools", "system", "network-programming"]
-description = "A lightweight Kubernetes cluster monitoring daemon in real-time."
 homepage = "https://paastel.io"
 keywords = ["kubernetes", "k8s", "daemon", "monitoring", "cli", "logs", "events"]
 license = "ISC"
 readme = "README.md"
 repository = "https://got.paastel.io/?action=summary&path=kops"
+description = "A lightweight Kubernetes cluster monitoring daemon in real-time."
 
 edition = "2024"
 rust-version = "1.89.0"

@@ -1,3 +1,6 @@
+alias kd := kopsd
+alias kc := kopsctl
+
 default:
     @just --list
 
@@ -6,6 +9,16 @@ default:
 # Dry-run setup (do not install)
 setup-dry:
     ./scripts/setup.sh --dry-run
+
+# Run cargo commands
+
+# Run kops daemon
+kopsd:
+    cargo kopsd
+
+# Run kops control
+kopsctl:
+    cargo kopsctl
 
 # K3D cluster management
 

@@ -41,3 +41,10 @@ cluster-down CLUSTER:
 cluster-rm CLUSTER:
     @echo "Deleting k3d cluster: {{ CLUSTER }}"
     k3d cluster delete {{ CLUSTER }}
+
+# Show cluster info
+cluster-info CLUSTER:
+    @echo "Info k3d cluster: {{ CLUSTER }}"
+    kubectl config get-contexts k3d-{{ CLUSTER }}
+    kubectl get nodes
+    kubectl get pods -A

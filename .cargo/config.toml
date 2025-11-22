@@ -1,0 +1,7 @@
+[alias]
+ck = "check --workspace --all-features --all-targets --locked"
+lint = "clippy --workspace --all-targets --all-features"
+codecov = "llvm-cov --workspace"
+
+kopsd = "run -p kopsd"
+kopsctl = "run -p kopsctl"

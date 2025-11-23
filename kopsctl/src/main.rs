@@ -31,7 +31,7 @@ const VERSION: &str = concat!(
 #[derive(Debug, Subcommand)]
 enum Command {
     /// Ping the daemon and expect a Pong response.
-    Ping
+    Ping,
 }
 
 #[derive(Debug, Parser)]
@@ -58,43 +58,11 @@ struct Args {
 async fn main() -> Result<()> {
     let args = Args::parse();
 
-    init_logger(args.verbose);
+    kops_log::init(args.verbose);
 
     match args.command {
         Command::Ping => cmd::ping::execute().await?,
     }
 
     Ok(())
-}
-
-
-/// Initialize tracing based on RUST_LOG and the CLI verbosity.
-///
-/// Rules:
-/// - If RUST_LOG is set, it is fully respected.
-/// - If RUST_LOG is not set and verbose == 0 -> INFO level.
-/// - If RUST_LOG is not set and verbose  > 0 -> DEBUG level.
-fn init_logger(verbose: u8) {
-    use tracing_subscriber::{
-        EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
-    };
-
-    let stdout_layer =
-        fmt::layer().without_time().with_writer(std::io::stdout);
-
-    if std::env::var_os("RUST_LOG").is_some() {
-        tracing_subscriber::registry()
-            .with(EnvFilter::from_default_env())
-            .with(stdout_layer)
-            .init();
-        return;
-    }
-
-    let filter = if verbose > 0 {
-        EnvFilter::new("debug")
-    } else {
-        EnvFilter::new("info")
-    };
-
-    tracing_subscriber::registry().with(filter).with(stdout_layer).init();
 }

@@ -32,7 +32,7 @@ use kops_protocol::{
 
 use crate::config::{self, KopsdConfig};
 
-const SOCKET_PATH: &str = "/tmp/kopsd.sock";
+const SOCKET_PATH: &str = "/var/run/kopsd.sock";
 
 pub(crate) fn run(args: &crate::Args) -> Result<()> {
     kops_log::init(args.verbose);

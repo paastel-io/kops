@@ -13,15 +13,11 @@
 // ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
-use anyhow::Result;
-use clap::{ArgAction, Parser};
-use tokio::{
-    io::{AsyncReadExt, AsyncWriteExt},
-    net::UnixStream,
-};
-use tracing::{debug, warn};
 
-const SOCKET_PATH: &str = "/tmp/kopsd.sock";
+use anyhow::Result;
+use clap::{ArgAction, Parser, Subcommand};
+
+mod cmd;
 
 const VERSION: &str = concat!(
     env!("CARGO_PKG_VERSION"),
@@ -31,6 +27,12 @@ const VERSION: &str = concat!(
     env!("BUILD_DATE", "unknown"),
     ")",
 );
+
+#[derive(Debug, Subcommand)]
+enum Command {
+    /// Ping the daemon and expect a Pong response.
+    Ping
+}
 
 #[derive(Debug, Parser)]
 #[command(
@@ -46,6 +48,10 @@ struct Args {
     /// When no RUST_LOG is set, a single -v switches the log level to DEBUG.
     #[arg(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
+
+    /// Command to execute.
+    #[command(subcommand)]
+    command: Command,
 }
 
 #[tokio::main]
@@ -54,32 +60,13 @@ async fn main() -> Result<()> {
 
     init_logger(args.verbose);
 
-    ping().await?;
-
-    Ok(())
-}
-
-async fn ping() -> Result<()> {
-    debug!("connecting to kopsd at {}", SOCKET_PATH);
-
-    let mut stream = UnixStream::connect(SOCKET_PATH).await?;
-
-    stream.write_all(b"PING\n").await?;
-    stream.flush().await?;
-
-    let mut buf = vec![0u8; 1024];
-    let n = stream.read(&mut buf).await?;
-
-    if n == 0 {
-        warn!("no response from server");
-        return Ok(());
+    match args.command {
+        Command::Ping => cmd::ping::execute().await?,
     }
 
-    let msg = String::from_utf8_lossy(&buf[..n]).trim().to_string();
-    debug!("server replied: {}", msg);
-
     Ok(())
 }
+
 
 /// Initialize tracing based on RUST_LOG and the CLI verbosity.
 ///

@@ -175,6 +175,7 @@ name = "kops_protocol"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "tokio",
 ]
 
 [[package]]

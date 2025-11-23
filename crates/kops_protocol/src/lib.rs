@@ -14,6 +14,8 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
+pub mod wire;
+
 use bincode::{Decode, Encode};
 
 /// High-level request from `kopsctl` to `kopsd`.
@@ -28,4 +30,7 @@ pub enum Request {
 pub enum Response {
     /// Response for `Request::Ping`,
     Pong,
+
+    /// Error
+    Error { message: String },
 }

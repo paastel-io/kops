@@ -14,6 +14,7 @@ description.workspace = true
 
 [dependencies]
 bincode.workspace = true
+tokio = { workspace = true, features = ["io-util"] }
 
 [lints]
 workspace = true

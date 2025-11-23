@@ -16,7 +16,8 @@
 
 use anyhow::Result;
 use clap::{ArgAction, Parser};
-use tracing::{debug, info};
+
+mod server;
 
 const VERSION: &str = concat!(
     env!("CARGO_PKG_VERSION"),
@@ -49,8 +50,7 @@ async fn main() -> Result<()> {
 
     init_logger(args.verbose);
 
-    info!("hello world cli");
-    debug!("hello world cli");
+    server::run().await?;
 
     Ok(())
 }
@@ -66,9 +66,8 @@ fn init_logger(verbose: u8) {
         EnvFilter, fmt, layer::SubscriberExt, util::SubscriberInitExt,
     };
 
-    let stdout_layer = fmt::layer()
-        .without_time()
-        .with_writer(std::io::stdout);
+    let stdout_layer =
+        fmt::layer().without_time().with_writer(std::io::stdout);
 
     if std::env::var_os("RUST_LOG").is_some() {
         tracing_subscriber::registry()

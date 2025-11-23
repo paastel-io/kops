@@ -32,7 +32,7 @@ use kops_protocol::{
 
 use crate::config::{self, KopsdConfig};
 
-const SOCKET_PATH: &str = "/var/run/kopsd.sock";
+const SOCKET_PATH: &str = "/var/run/kopsd/kopsd.sock";
 
 pub(crate) fn run(args: &crate::Args) -> Result<()> {
     kops_log::init(args.verbose);
@@ -114,7 +114,9 @@ async fn _run(_config: &KopsdConfig) -> Result<()> {
     // try to remove a stale socket if it exists
     let _ = remove_file(SOCKET_PATH).await;
 
-    let listener = UnixListener::bind(SOCKET_PATH)?;
+    let listener = UnixListener::bind(SOCKET_PATH).with_context(|| {
+        format!("failed to create socket path {SOCKET_PATH}")
+    })?;
     info!("listening on unix socket {}", SOCKET_PATH);
 
     if let Err(e) = std::fs::set_permissions(

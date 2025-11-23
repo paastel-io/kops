@@ -23,7 +23,7 @@ use kops_protocol::{
     wire::{read_message, write_message},
 };
 
-const SOCKET_PATH: &str = "/var/run/kopsd.sock";
+const SOCKET_PATH: &str = "/var/run/kopsd/kopsd.sock";
 
 pub(crate) async fn send_request(req: Request) -> Result<Response> {
     debug!("connecting to kopsd at {}", SOCKET_PATH);

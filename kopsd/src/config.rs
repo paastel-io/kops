@@ -15,45 +15,21 @@
 //
 
 use anyhow::Result;
-use clap::{ArgAction, Parser};
+use serde::Deserialize;
+use tracing::debug;
 
-mod config;
-mod server;
+#[derive(Debug, Deserialize)]
+pub struct KopsdConfig {}
 
-const VERSION: &str = concat!(
-    env!("CARGO_PKG_VERSION"),
-    " (",
-    env!("GIT_HASH", "unknown"),
-    " ",
-    env!("BUILD_DATE", "unknown"),
-    ")",
-);
+pub(crate) fn load() -> Result<KopsdConfig> {
+    debug!("loading");
+    let mut settings = config::Config::builder();
 
-#[derive(Debug, Parser)]
-#[command(
-    name = env!("CARGO_PKG_NAME"),
-    about = "kops daemon",
-    version = VERSION,
-    author,
-    propagate_version = true
-)]
-struct Args {
-    /// Increase verbosity (use -v, -vv, ...).
-    ///
-    /// When no RUST_LOG is set, a single -v switches the log level to DEBUG.
-    #[arg(short, long, global = true, action = ArgAction::Count)]
-    verbose: u8,
-}
+    settings = settings
+        .add_source(config::File::with_name("config/kopsd").required(false))
+        .add_source(config::Environment::with_prefix("KOPSD").separator("__"));
 
-#[tokio::main]
-async fn main() -> Result<()> {
-    let args = Args::parse();
+    let cfg = settings.build()?;
 
-    kops_log::init(args.verbose);
-
-    let config = config::load()?;
-
-    server::run(&config).await?;
-
-    Ok(())
+    Ok(cfg.try_deserialize()?)
 }

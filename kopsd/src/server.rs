@@ -29,7 +29,9 @@ use kops_protocol::{
     wire::{read_message, write_message},
 };
 
-pub(crate) async fn run() -> Result<()> {
+use crate::config::KopsdConfig;
+
+pub(crate) async fn run(_config: &KopsdConfig) -> Result<()> {
     info!("starting kopsd");
 
     // try to remove a stale socket if it exists

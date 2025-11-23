@@ -16,8 +16,8 @@
 
 use std::{fmt, io};
 
-use bincode::{Encode, Decode};
-use tokio::io::{AsyncWrite, AsyncWriteExt, AsyncRead, AsyncReadExt};
+use bincode::{Decode, Encode};
+use tokio::io::{AsyncRead, AsyncReadExt, AsyncWrite, AsyncWriteExt};
 
 /// Error type for framed bincode I/O on the wire.
 #[derive(Debug)]
@@ -87,10 +87,13 @@ where
 }
 
 /// Write a length-prefixed bincode message to an async writer.
-pub async fn write_message<W, T>(writer: &mut W, msg: &T) -> Result<(), WireError>
+pub async fn write_message<W, T>(
+    writer: &mut W,
+    msg: &T,
+) -> Result<(), WireError>
 where
     W: AsyncWrite + Unpin,
-    T: Encode
+    T: Encode,
 {
     let config = bincode::config::standard();
     let encoded = bincode::encode_to_vec(msg, config)?;
@@ -102,85 +105,3 @@ where
 
     Ok(())
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

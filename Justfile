@@ -48,7 +48,7 @@ kopsctl:
 # Create a k3d cluster
 cluster-create CLUSTER:
     @echo "Creating k3d cluster: {{ CLUSTER }}"
-    k3d cluster start {{ CLUSTER }}
+    k3d cluster create {{ CLUSTER }}
 
 # Start a k3d cluster
 cluster-up CLUSTER:

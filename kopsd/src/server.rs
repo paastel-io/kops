@@ -20,8 +20,9 @@ use anyhow::Result;
 use tokio::{
     fs::remove_file,
     net::{UnixListener, UnixStream},
+    signal,
 };
-use tracing::{debug, error, info};
+use tracing::{debug, error, info, warn};
 
 use kops_protocol::{
     Request, Response,
@@ -29,6 +30,8 @@ use kops_protocol::{
 };
 
 pub(crate) async fn run() -> Result<()> {
+    info!("starting kopsd");
+
     // try to remove a stale socket if it exists
     let _ = remove_file(SOCKET_PATH).await;
 
@@ -36,20 +39,45 @@ pub(crate) async fn run() -> Result<()> {
     info!("listening on unix socket {}", SOCKET_PATH);
 
     loop {
-        match listener.accept().await {
-            Ok((stream, _addr)) => {
-                debug!("new client connection");
-                tokio::spawn(async move {
-                    if let Err(e) = handle_client(stream).await {
-                        error!("client handler error: {e:?}");
+        tokio::select! {
+            res = listener.accept() => {
+                match res {
+                    Ok((stream, _addr)) => {
+                        debug!("new client connection");
+                        tokio::spawn(async move {
+                            if let Err(e) = handle_client(stream).await {
+                                error!("client handler error: {e:?}");
+                            }
+                        });
                     }
-                });
+                    Err(e) => {
+                        error!("failed to accept connection: {e:?}");
+                    }
+                }
             }
-            Err(e) => {
-                error!("failed to accept connection: {e:?}");
+
+            // handle ctrl+c sigint
+            _ = signal::ctrl_c() => {
+                warn!("CTRL+C received, shutting down gracefully...");
+                break;
             }
         }
     }
+
+    // Dropping the listener closes the socket
+    drop(listener);
+
+    if let Err(e) = remove_file(SOCKET_PATH).await {
+        if e.kind() != std::io::ErrorKind::NotFound {
+            error!("failed to remove socket file on shutdown: {e:?}");
+        }
+    } else {
+        info!("removed socket file {}", SOCKET_PATH);
+    }
+
+    info!("kopsd server stopped");
+
+    Ok(())
 }
 
 /// Handle a single client connection

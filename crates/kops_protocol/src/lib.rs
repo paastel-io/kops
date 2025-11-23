@@ -14,7 +14,10 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
+pub mod types;
 pub mod wire;
+
+pub use types::VersionInfo;
 
 use bincode::{Decode, Encode};
 
@@ -23,6 +26,9 @@ use bincode::{Decode, Encode};
 pub enum Request {
     /// Health-check: the daemon must reply with `Response::Pong`.
     Ping,
+
+    /// Version
+    Version,
 }
 
 /// Response from `kopsd` to `kopsctl`.
@@ -31,6 +37,10 @@ pub enum Response {
     /// Response for `Request::Ping`,
     Pong,
 
+    Version(VersionInfo),
+
     /// Error
-    Error { message: String },
+    Error {
+        message: String,
+    },
 }

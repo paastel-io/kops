@@ -190,6 +190,23 @@ async fn handle_client(mut stream: UnixStream) -> Result<()> {
 
         let resp = match req {
             Request::Ping => Response::Pong,
+            Request::Version => {
+                let daemon_version = env!("CARGO_PKG_VERSION").to_string();
+                let protocol_version = "1".to_string();
+
+                let git_sha = option_env!("GIT_HASH").map(|s| s.to_string());
+                let build_date =
+                    option_env!("BUILD_DATE").map(|s| s.to_string());
+
+                let info = kops_protocol::VersionInfo {
+                    daemon_version,
+                    protocol_version,
+                    git_sha,
+                    build_date,
+                };
+
+                Response::Version(info)
+            }
         };
 
         if let Err(e) = write_message(&mut stream, &resp).await {

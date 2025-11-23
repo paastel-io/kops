@@ -33,6 +33,9 @@ const VERSION: &str = concat!(
 enum Command {
     /// Ping the daemon and expect a Pong response.
     Ping,
+
+    /// Show daemon and protocol version
+    Version,
 }
 
 #[derive(Debug, Parser)]
@@ -63,6 +66,7 @@ async fn main() -> Result<()> {
 
     match args.command {
         Command::Ping => cmd::ping::execute().await?,
+        Command::Version => cmd::version::execute().await?,
     }
 
     Ok(())

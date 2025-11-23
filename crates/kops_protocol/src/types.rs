@@ -1,5 +1,5 @@
 //
-// Copyright (c) 2025 murilo ijanc' <murilo@ijanc.org>
+// Copyright (c) 2025 murilo ijanc <murilo@ijanc.org>
 //
 // Permission to use, copy, modify, and distribute this software for any
 // purpose with or without fee is hereby granted, provided that the above
@@ -14,5 +14,19 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-pub mod ping;
-pub mod version;
+use bincode::{Decode, Encode};
+
+#[derive(Debug, Encode, Decode)]
+pub struct VersionInfo {
+    /// Version
+    pub daemon_version: String,
+
+    /// Protocol version
+    pub protocol_version: String,
+
+    /// SHA do commit
+    pub git_sha: Option<String>,
+
+    /// Date de build
+    pub build_date: Option<String>,
+}

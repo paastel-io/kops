@@ -14,9 +14,10 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-const SOCKET_PATH: &str = "/tmp/kopsd.sock";
+use std::os::unix::fs::PermissionsExt;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
+use daemonize::Daemonize;
 use tokio::{
     fs::remove_file,
     net::{UnixListener, UnixStream},
@@ -29,9 +30,85 @@ use kops_protocol::{
     wire::{read_message, write_message},
 };
 
-use crate::config::KopsdConfig;
+use crate::config::{self, KopsdConfig};
 
-pub(crate) async fn run(_config: &KopsdConfig) -> Result<()> {
+const SOCKET_PATH: &str = "/tmp/kopsd.sock";
+
+pub(crate) fn run(args: &crate::Args) -> Result<()> {
+    kops_log::init(args.verbose);
+    let config = config::load()?;
+
+    if args.daemon {
+        run_fg(&config)?;
+    } else {
+        run_bg(&config)?;
+    }
+
+    Ok(())
+}
+
+fn run_fg(config: &KopsdConfig) -> Result<()> {
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("failed to build tokio runtime")?;
+
+    rt.block_on(async move { _run(config).await })
+}
+
+fn run_bg(config: &KopsdConfig) -> Result<()> {
+    let daemon_cfg = config.daemon.clone().unwrap_or_default();
+
+    let stdout = if let Some(ref path) = daemon_cfg.stdout {
+        Some(std::fs::File::create(path).with_context(|| {
+            format!("failed to create daemon stdout file at {path}")
+        })?)
+    } else {
+        None
+    };
+
+    let stderr = if let Some(ref path) = daemon_cfg.stderr {
+        Some(std::fs::File::create(path).with_context(|| {
+            format!("failed to create daemon stderr file at {path}")
+        })?)
+    } else {
+        None
+    };
+
+    let mut daemon = Daemonize::new();
+
+    if let Some(ref user) = daemon_cfg.user {
+        daemon = daemon.user(user.as_str());
+    }
+
+    if let Some(ref group) = daemon_cfg.group {
+        daemon = daemon.group(group.as_str());
+    }
+
+    if let Some(ref pid_file) = daemon_cfg.pid_file {
+        daemon = daemon.pid_file(pid_file).chown_pid_file(true);
+    }
+
+    if let Some(stdout) = stdout {
+        daemon = daemon.stdout(stdout);
+    }
+
+    if let Some(stderr) = stderr {
+        daemon = daemon.stderr(stderr);
+    }
+
+    // Fork and detach
+    daemon.start().context("failed to daemonize kopsd process")?;
+
+    let rt = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .context("failed to build tokio runtime")?;
+
+    rt.block_on(async move { _run(config).await })
+}
+
+async fn _run(_config: &KopsdConfig) -> Result<()> {
     info!("starting kopsd");
 
     // try to remove a stale socket if it exists
@@ -39,6 +116,14 @@ pub(crate) async fn run(_config: &KopsdConfig) -> Result<()> {
 
     let listener = UnixListener::bind(SOCKET_PATH)?;
     info!("listening on unix socket {}", SOCKET_PATH);
+
+    if let Err(e) = std::fs::set_permissions(
+        SOCKET_PATH,
+        std::fs::Permissions::from_mode(0o660),
+    ) {
+        // aqui você pode decidir se quer abortar ou só logar
+        error!("failed to set socket permissions: {e:?}");
+    }
 
     loop {
         tokio::select! {

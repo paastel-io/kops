@@ -1,0 +1,10 @@
+[daemon]
+user = "kopsd"
+group = "kopsd"
+
+# Optional: pid file for the daemon process
+pid_file = "/var/run/kopsd.pid"
+
+# optional: redirec stdout/err to files
+stdout = "/var/log/kopsd.log"
+stderr = "/var/log/kopsd-err.log"

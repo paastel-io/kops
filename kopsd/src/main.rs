@@ -43,17 +43,16 @@ struct Args {
     /// When no RUST_LOG is set, a single -v switches the log level to DEBUG.
     #[arg(short, long, global = true, action = ArgAction::Count)]
     verbose: u8,
+
+    /// Do not daemonize.
+    ///
+    /// If this option is specified, kopsd will run in the foreground and log to stderr.
+    #[arg(short)]
+    daemon: bool,
 }
 
-#[tokio::main]
-async fn main() -> Result<()> {
+fn main() -> Result<()> {
     let args = Args::parse();
-
-    kops_log::init(args.verbose);
-
-    let config = config::load()?;
-
-    server::run(&config).await?;
-
+    server::run(&args)?;
     Ok(())
 }

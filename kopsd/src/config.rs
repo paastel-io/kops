@@ -18,8 +18,19 @@ use anyhow::Result;
 use serde::Deserialize;
 use tracing::debug;
 
-#[derive(Debug, Deserialize)]
-pub struct KopsdConfig {}
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct DaemonConfig {
+    pub pid_file: Option<String>,
+    pub stdout: Option<String>,
+    pub stderr: Option<String>,
+    pub user: Option<String>,
+    pub group: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct KopsdConfig {
+    pub daemon: Option<DaemonConfig>,
+}
 
 pub(crate) fn load() -> Result<KopsdConfig> {
     debug!("loading");

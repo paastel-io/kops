@@ -16,6 +16,19 @@ setup-dry:
 # Cargo
 #
 
+# Install kopsd and kopctl
+install:
+    just install-kopsd
+    just install-kopsctl
+
+# Install kopsd
+install-kopsd:
+    cargo install --path kopsd
+
+# Install kopctl
+install-kopsctl:
+    cargo install --path kopsctl
+
 # Audit deny
 audit:
     cargo deny check

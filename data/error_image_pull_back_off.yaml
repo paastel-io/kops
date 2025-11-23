@@ -1,0 +1,22 @@
+###############################################################################
+# Crash Error: CrashLoopBackOff (simulate)
+###############################################################################
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: crash-image
+    namespace: default
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: crash-image
+    template:
+        metadata:
+            labels:
+                app: crash-image
+        spec:
+            containers:
+                - name: app
+                  image: busybox
+                  command: ["sh", "-c", "echo 'crashing' && sleep 2 && exit 1"]

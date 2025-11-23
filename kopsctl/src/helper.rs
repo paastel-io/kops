@@ -14,19 +14,26 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-use anyhow::Result;
-use tracing::{debug, error};
+use anyhow::{Result, bail};
+use tokio::net::UnixStream;
+use tracing::debug;
 
-use kops_protocol::{Request, Response};
+use kops_protocol::{
+    Request, Response,
+    wire::{read_message, write_message},
+};
 
-use crate::helper::send_request;
+const SOCKET_PATH: &str = "/tmp/kopsd.sock";
 
-pub async fn execute() -> Result<()> {
-    let resp = send_request(Request::Ping).await?;
+pub(crate) async fn send_request(req: Request) -> Result<Response> {
+    debug!("connecting to kopsd at {}", SOCKET_PATH);
+    let mut stream = UnixStream::connect(SOCKET_PATH).await?;
 
-    if let Response::Error { message } = resp {
-        error!("error from daemon: {message}");
-    }
-    debug!("received pong response");
-    Ok(())
+    write_message(&mut stream, &req).await?;
+    let resp: Response = match read_message(&mut stream).await? {
+        Some(r) => r,
+        None => bail!("daemon closed connection without reply"),
+    };
+
+    Ok(resp)
 }

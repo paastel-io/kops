@@ -18,6 +18,7 @@ use anyhow::Result;
 use clap::{ArgAction, Parser, Subcommand};
 
 mod cmd;
+mod helper;
 
 const VERSION: &str = concat!(
     env!("CARGO_PKG_VERSION"),

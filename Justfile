@@ -4,13 +4,21 @@ alias kc := kopsctl
 default:
     @just --list
 
-# Setups
+#
+# Setup
+#
 
 # Dry-run setup (do not install)
 setup-dry:
     ./scripts/setup.sh --dry-run
 
-# Run cargo commands
+#
+# Cargo
+#
+
+# Audit deny
+audit:
+    cargo deny check
 
 # Run kops daemon
 kopsd:
@@ -20,7 +28,9 @@ kopsd:
 kopsctl:
     cargo kopsctl
 
+#
 # K3D cluster management
+#
 
 # Create a k3d cluster
 cluster-create CLUSTER:

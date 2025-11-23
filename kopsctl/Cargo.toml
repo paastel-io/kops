@@ -16,6 +16,7 @@ description.workspace = true
 anyhow.workspace = true
 clap.workspace = true
 kops_log.workspace = true
+kops_protocol.workspace = true
 tokio.workspace = true
 tracing.workspace = true
 

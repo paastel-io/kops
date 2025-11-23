@@ -19,10 +19,14 @@ const SOCKET_PATH: &str = "/tmp/kopsd.sock";
 use anyhow::Result;
 use tokio::{
     fs::remove_file,
-    io::{AsyncReadExt, AsyncWriteExt},
     net::{UnixListener, UnixStream},
 };
 use tracing::{debug, error, info};
+
+use kops_protocol::{
+    Request, Response,
+    wire::{read_message, write_message},
+};
 
 pub(crate) async fn run() -> Result<()> {
     // try to remove a stale socket if it exists
@@ -49,23 +53,32 @@ pub(crate) async fn run() -> Result<()> {
 }
 
 /// Handle a single client connection
+///
+/// Read `kops_protocol::Request` and write `kops_protocol::Response`.
 async fn handle_client(mut stream: UnixStream) -> Result<()> {
-    let mut buf = vec![0u8; 1024];
-
     loop {
-        let n = stream.read(&mut buf).await?;
+        let req: Request = match read_message(&mut stream).await {
+            Ok(Some(msg)) => msg,
+            Ok(None) => {
+                debug!("client closed connection");
+                break;
+            }
+            Err(e) => {
+                error!("failed to read message: {e:?}");
+                break;
+            }
+        };
 
-        // EOF
-        if n == 0 {
-            debug!("client closed connection");
+        debug!("received request: {:?}", req);
+
+        let resp = match req {
+            Request::Ping => Response::Pong,
+        };
+
+        if let Err(e) = write_message(&mut stream, &resp).await {
+            error!("failed to write response: {e:?}");
             break;
         }
-
-        let msg = std::str::from_utf8(&buf[..n])?.trim();
-        debug!("received from client: {:?}", msg);
-
-        stream.write_all(b"PONG\n").await?;
-        stream.flush().await?;
     }
 
     Ok(())

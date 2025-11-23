@@ -185,6 +185,7 @@ dependencies = [
  "anyhow",
  "clap",
  "kops_log",
+ "kops_protocol",
  "tokio",
  "tracing",
 ]
@@ -196,6 +197,7 @@ dependencies = [
  "anyhow",
  "clap",
  "kops_log",
+ "kops_protocol",
  "tokio",
  "tracing",
 ]

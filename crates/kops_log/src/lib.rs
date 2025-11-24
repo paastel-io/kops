@@ -37,9 +37,9 @@ pub fn init(verbose: u8) {
     }
 
     let filter = if verbose > 0 {
-        EnvFilter::new("debug")
+        EnvFilter::new("kopsd=debug")
     } else {
-        EnvFilter::new("info")
+        EnvFilter::new("kopsd=info")
     };
 
     tracing_subscriber::registry().with(filter).with(stdout_layer).init();

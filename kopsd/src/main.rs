@@ -1,3 +1,4 @@
+#![allow(dead_code)]
 //
 // Copyright (c) 2025 murilo ijanc' <murilo@ijanc.org>
 //
@@ -18,7 +19,10 @@ use anyhow::Result;
 use clap::{ArgAction, Parser};
 
 mod config;
+mod handler;
+mod kube_worker;
 mod server;
+mod state;
 
 const VERSION: &str = concat!(
     env!("CARGO_PKG_VERSION"),

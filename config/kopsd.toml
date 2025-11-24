@@ -1,3 +1,12 @@
+[kops]
+default_cluster = "dev"
+
+[[cluster]]
+name = "dev"
+kubeconfig = "/home/ijanc/.kube/config"
+context = "k3d-dev"
+namespaces = ["default", "kube-system"]
+
 [daemon]
 user = "kopsd"
 group = "kopsd"

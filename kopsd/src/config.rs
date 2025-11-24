@@ -14,10 +14,24 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
+use std::path::PathBuf;
+
 use anyhow::Result;
 use serde::Deserialize;
 use tracing::debug;
 
+#[derive(Debug, Deserialize, Default, Clone)]
+pub struct KopsSection {
+    pub default_cluster: Option<String>,
+}
+
+#[derive(Clone, Debug, Deserialize)]
+pub struct ClusterConfig {
+    pub name: String,
+    pub kubeconfig: Option<PathBuf>,
+    pub context: Option<String>,
+    pub namespaces: Option<Vec<String>>,
+}
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct DaemonConfig {
     pub pid_file: Option<String>,
@@ -29,7 +43,9 @@ pub struct DaemonConfig {
 
 #[derive(Debug, Deserialize, Default, Clone)]
 pub struct KopsdConfig {
+    pub kops: KopsSection,
     pub daemon: Option<DaemonConfig>,
+    pub cluster: Vec<ClusterConfig>,
 }
 
 pub(crate) fn load() -> Result<KopsdConfig> {

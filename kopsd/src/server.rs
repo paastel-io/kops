@@ -14,7 +14,7 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-use std::os::unix::fs::PermissionsExt;
+use std::{os::unix::fs::PermissionsExt, sync::Arc};
 
 use anyhow::{Context, Result};
 use daemonize::Daemonize;
@@ -26,37 +26,59 @@ use tokio::{
 use tracing::{debug, error, info, warn};
 
 use kops_protocol::{
-    Request, Response,
+    Request,
     wire::{read_message, write_message},
 };
 
-use crate::config::{self, KopsdConfig};
+use crate::{
+    config::{self, KopsdConfig},
+    handler::Handler,
+    state::{ClusterState, DaemonState},
+};
 
 const SOCKET_PATH: &str = "/var/run/kopsd/kopsd.sock";
 
 pub(crate) fn run(args: &crate::Args) -> Result<()> {
     kops_log::init(args.verbose);
+
     let config = config::load()?;
 
+    let mut clusters_map = std::collections::HashMap::new();
+    for c in &config.cluster {
+        let cs = Arc::new(ClusterState { pods: Default::default() });
+        clusters_map.insert(c.name.clone(), cs);
+    }
+
+    let default_cluster = config
+        .kops
+        .default_cluster
+        .clone()
+        .unwrap_or_else(|| config.cluster[0].name.clone());
+
+    let state =
+        Arc::new(DaemonState { clusters: clusters_map, default_cluster });
+
+    let handler = Arc::new(Handler::new(state.clone()));
+
     if args.daemon {
-        run_fg(&config)?;
+        run_fg(&config, handler)?;
     } else {
-        run_bg(&config)?;
+        run_bg(&config, handler)?;
     }
 
     Ok(())
 }
 
-fn run_fg(config: &KopsdConfig) -> Result<()> {
+fn run_fg(config: &KopsdConfig, handler: Arc<Handler>) -> Result<()> {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .context("failed to build tokio runtime")?;
 
-    rt.block_on(async move { _run(config).await })
+    rt.block_on(async move { _run(config, handler).await })
 }
 
-fn run_bg(config: &KopsdConfig) -> Result<()> {
+fn run_bg(config: &KopsdConfig, handler: Arc<Handler>) -> Result<()> {
     let daemon_cfg = config.daemon.clone().unwrap_or_default();
 
     let stdout = if let Some(ref path) = daemon_cfg.stdout {
@@ -105,10 +127,10 @@ fn run_bg(config: &KopsdConfig) -> Result<()> {
         .build()
         .context("failed to build tokio runtime")?;
 
-    rt.block_on(async move { _run(config).await })
+    rt.block_on(async move { _run(config, handler).await })
 }
 
-async fn _run(_config: &KopsdConfig) -> Result<()> {
+async fn _run(_config: &KopsdConfig, handler: Arc<Handler>) -> Result<()> {
     info!("starting kopsd");
 
     // try to remove a stale socket if it exists
@@ -123,7 +145,6 @@ async fn _run(_config: &KopsdConfig) -> Result<()> {
         SOCKET_PATH,
         std::fs::Permissions::from_mode(0o660),
     ) {
-        // aqui você pode decidir se quer abortar ou só logar
         error!("failed to set socket permissions: {e:?}");
     }
 
@@ -132,9 +153,10 @@ async fn _run(_config: &KopsdConfig) -> Result<()> {
             res = listener.accept() => {
                 match res {
                     Ok((stream, _addr)) => {
+                        let handler = handler.clone();
                         debug!("new client connection");
                         tokio::spawn(async move {
-                            if let Err(e) = handle_client(stream).await {
+                            if let Err(e) = handle_client(stream, handler).await {
                                 error!("client handler error: {e:?}");
                             }
                         });
@@ -172,7 +194,10 @@ async fn _run(_config: &KopsdConfig) -> Result<()> {
 /// Handle a single client connection
 ///
 /// Read `kops_protocol::Request` and write `kops_protocol::Response`.
-async fn handle_client(mut stream: UnixStream) -> Result<()> {
+async fn handle_client(
+    mut stream: UnixStream,
+    handler: Arc<Handler>,
+) -> Result<()> {
     loop {
         let req: Request = match read_message(&mut stream).await {
             Ok(Some(msg)) => msg,
@@ -188,26 +213,28 @@ async fn handle_client(mut stream: UnixStream) -> Result<()> {
 
         debug!("received request: {:?}", req);
 
-        let resp = match req {
-            Request::Ping => Response::Pong,
-            Request::Version => {
-                let daemon_version = env!("CARGO_PKG_VERSION").to_string();
-                let protocol_version = "1".to_string();
+        let resp = handler.handle(req).await;
 
-                let git_sha = option_env!("GIT_HASH").map(|s| s.to_string());
-                let build_date =
-                    option_env!("BUILD_DATE").map(|s| s.to_string());
+        // let resp = match req {
+        //     Request::Ping => Response::Pong,
+        //     Request::Version => {
+        //         let daemon_version = env!("CARGO_PKG_VERSION").to_string();
+        //         let protocol_version = "1".to_string();
 
-                let info = kops_protocol::VersionInfo {
-                    daemon_version,
-                    protocol_version,
-                    git_sha,
-                    build_date,
-                };
+        //         let git_sha = option_env!("GIT_HASH").map(|s| s.to_string());
+        //         let build_date =
+        //             option_env!("BUILD_DATE").map(|s| s.to_string());
 
-                Response::Version(info)
-            }
-        };
+        //         let info = kops_protocol::VersionInfo {
+        //             daemon_version,
+        //             protocol_version,
+        //             git_sha,
+        //             build_date,
+        //         };
+
+        //         Response::Version(info)
+        //     }
+        // };
 
         if let Err(e) = write_message(&mut stream, &resp).await {
             error!("failed to write response: {e:?}");

@@ -19,6 +19,7 @@ use std::{os::unix::fs::PermissionsExt, sync::Arc};
 use anyhow::{Context, Result};
 use daemonize::Daemonize;
 use tokio::{
+    task,
     fs::remove_file,
     net::{UnixListener, UnixStream},
     signal,
@@ -33,6 +34,7 @@ use kops_protocol::{
 use crate::{
     config::{self, KopsdConfig},
     handler::Handler,
+    kube_worker::start_cluster_worker,
     state::{ClusterState, DaemonState},
 };
 
@@ -43,39 +45,60 @@ pub(crate) fn run(args: &crate::Args) -> Result<()> {
 
     let config = config::load()?;
 
-    let mut clusters_map = std::collections::HashMap::new();
-    for c in &config.cluster {
-        let cs = Arc::new(ClusterState { pods: Default::default() });
-        clusters_map.insert(c.name.clone(), cs);
-    }
-
-    let default_cluster = config
-        .kops
-        .default_cluster
-        .clone()
-        .unwrap_or_else(|| config.cluster[0].name.clone());
-
-    let state =
-        Arc::new(DaemonState { clusters: clusters_map, default_cluster });
-
-    let handler = Arc::new(Handler::new(state.clone()));
-
     if args.daemon {
-        run_fg(&config, handler)?;
-    } else {
-        run_bg(&config, handler)?;
+        run_fg(&config)?;
     }
+    // } else {
+    //     run_bg(&config, handler)?;
+    // }
 
     Ok(())
 }
 
-fn run_fg(config: &KopsdConfig, handler: Arc<Handler>) -> Result<()> {
+fn run_fg(config: &KopsdConfig) -> Result<()> {
     let rt = tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .context("failed to build tokio runtime")?;
 
-    rt.block_on(async move { _run(config, handler).await })
+    rt.block_on(async move {
+        let mut clusters_map = std::collections::HashMap::new();
+        for c in &config.cluster {
+            let cs = Arc::new(ClusterState { pods: Default::default() });
+            clusters_map.insert(c.name.clone(), cs);
+        }
+
+        let default_cluster = config
+            .kops
+            .default_cluster
+            .clone()
+            .unwrap_or_else(|| config.cluster[0].name.clone());
+
+        let state =
+            Arc::new(DaemonState { clusters: clusters_map, default_cluster });
+
+        for c in config.cluster.clone() {
+            let cluster_name = c.name.clone();
+            let cluster_state = state
+                .clusters
+                .get(&cluster_name)
+                .cloned()
+                .expect("cluster state must exist");
+
+            task::spawn(async move {
+                if let Err(err) =
+                    start_cluster_worker(c, cluster_state, cluster_name.clone())
+                        .await
+                {
+                    error!(cluster = %cluster_name, "cluster worker failed: {err:?}");
+                }
+            });
+        }
+
+    let handler = Arc::new(Handler::new(state.clone()));
+
+        _run(config, handler).await
+    })
 }
 
 fn run_bg(config: &KopsdConfig, handler: Arc<Handler>) -> Result<()> {
@@ -214,27 +237,6 @@ async fn handle_client(
         debug!("received request: {:?}", req);
 
         let resp = handler.handle(req).await;
-
-        // let resp = match req {
-        //     Request::Ping => Response::Pong,
-        //     Request::Version => {
-        //         let daemon_version = env!("CARGO_PKG_VERSION").to_string();
-        //         let protocol_version = "1".to_string();
-
-        //         let git_sha = option_env!("GIT_HASH").map(|s| s.to_string());
-        //         let build_date =
-        //             option_env!("BUILD_DATE").map(|s| s.to_string());
-
-        //         let info = kops_protocol::VersionInfo {
-        //             daemon_version,
-        //             protocol_version,
-        //             git_sha,
-        //             build_date,
-        //         };
-
-        //         Response::Version(info)
-        //     }
-        // };
 
         if let Err(e) = write_message(&mut stream, &resp).await {
             error!("failed to write response: {e:?}");

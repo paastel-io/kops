@@ -49,7 +49,7 @@ pub async fn start_cluster_worker(
     let client = Client::try_from(kubeconfig)?;
 
     initial_pod_sync(&client, &state, &cluster_name).await?;
-    watch_pods(&client, &state, &cluster_name).await?;
+    // watch_pods(&client, &state, &cluster_name).await?;
 
     Ok(())
 }

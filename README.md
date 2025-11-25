@@ -10,3 +10,9 @@
 2. create cluster
 3. run daemon
 4. run ctrl
+
+| command | status |
+| ------- | ------ |
+| ping    | ok     |
+| version | ok     |
+| pods | ok     |

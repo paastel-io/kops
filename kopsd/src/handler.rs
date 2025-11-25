@@ -16,7 +16,7 @@
 
 use std::sync::Arc;
 
-use kops_protocol::{Request, Response};
+use kops_protocol::{PodsRequest, Request, Response};
 
 use crate::state::DaemonState;
 
@@ -33,6 +33,7 @@ impl Handler {
         match req {
             Request::Ping => Response::Pong,
             Request::Version => self.handle_version().await,
+            Request::Pods(p) => self.handle_pods(p).await,
         }
     }
 
@@ -53,45 +54,46 @@ impl Handler {
         Response::Version(info)
     }
 
-    // async fn handle_pods(&self, req: request) -> response {
-    //     // let cluster_name = req
-    //     //     .cluster
-    //     //     .as_deref()
-    //     //     .unwrap_or_else(|| self.state.default_cluster());
+    async fn handle_pods(&self, req: PodsRequest) -> Response {
+        let cluster_name = req
+            .cluster
+            .as_deref()
+            .unwrap_or_else(|| self.state.default_cluster());
 
-    //     // let Some(cluster_state) = self.state.clusters.get(cluster_name) else {
-    //     //     return Response::Error {
-    //     //         message: format!("cluster not found: {cluster_name}"),
-    //     //     };
-    //     // };
+        let Some(cluster_state) = self.state.clusters.get(cluster_name) else {
+            return Response::Error {
+                message: format!("cluster not found: {cluster_name}"),
+            };
+        };
 
-    //     // let map = cluster_state.pods.read().await;
-    //     // let mut pods: Vec<_> = map
-    //     //     .values()
-    //     //     .cloned()
-    //     //     .filter(|p| {
-    //     //         if let Some(ns) = &req.namespace {
-    //     //             if &p.namespace != ns {
-    //     //                 return false;
-    //     //             }
-    //     //         }
-    //     //         if req.failed_only {
-    //     //             if p.phase.as_deref() != Some("Failed")
-    //     //                 && p.reason.as_deref() != Some("CrashLoopBackOff")
-    //     //             {
-    //     //                 return false;
-    //     //             }
-    //     //         }
-    //     //         true
-    //     //     })
-    //     //     .collect();
+        let map = cluster_state.pods.read().await;
 
-    //     // pods.sort_by(|a, b| {
-    //     //     a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
-    //     // });
+        let mut pods: Vec<_> = map
+            .values()
+            .cloned()
+            .filter(|p| {
+                if let Some(ns) = &req.namespace {
+                    if &p.namespace != ns {
+                        return false;
+                    }
+                }
+                if req.failed_only {
+                    if p.phase.as_deref() != Some("Failed")
+                        && p.reason.as_deref() != Some("CrashLoopBackOff")
+                    {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect();
 
-    //     // Response::Pods { pods }
-    // }
+        pods.sort_by(|a, b| {
+            a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
+        });
+
+        Response::Pods { pods }
+    }
 
     // async fn handle_reset(&self, cluster: Option<String>) -> Response {
     //     todo!()

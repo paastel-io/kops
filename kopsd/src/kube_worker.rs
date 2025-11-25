@@ -20,6 +20,7 @@ use anyhow::Result;
 use futures::TryStreamExt;
 use futures::pin_mut;
 use k8s_openapi::api::core::v1::Pod;
+use kops_protocol::{PodKey, PodSummary};
 use kube::{
     Api, Client, Config,
     config::{KubeConfigOptions, Kubeconfig},
@@ -28,7 +29,7 @@ use kube_runtime::watcher::{self, Event};
 use tracing::info;
 
 use crate::config::ClusterConfig;
-use crate::state::{ClusterState, PodKey, PodSummary};
+use crate::state::ClusterState;
 
 pub async fn start_cluster_worker(
     cfg: ClusterConfig,

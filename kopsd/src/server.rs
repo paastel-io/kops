@@ -19,10 +19,9 @@ use std::{os::unix::fs::PermissionsExt, sync::Arc};
 use anyhow::{Context, Result};
 use daemonize::Daemonize;
 use tokio::{
-    task,
     fs::remove_file,
     net::{UnixListener, UnixStream},
-    signal,
+    signal, task,
 };
 use tracing::{debug, error, info, warn};
 

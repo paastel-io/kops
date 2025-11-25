@@ -36,6 +36,17 @@ enum Command {
 
     /// Show daemon and protocol version
     Version,
+
+    Pods {
+        #[arg(long)]
+        cluster: Option<String>,
+
+        #[arg(long)]
+        namespace: Option<String>,
+
+        #[arg(long)]
+        failed_only: bool,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -67,6 +78,9 @@ async fn main() -> Result<()> {
     match args.command {
         Command::Ping => cmd::ping::execute().await?,
         Command::Version => cmd::version::execute().await?,
+        Command::Pods { cluster, namespace, failed_only } => {
+            cmd::pods::execute(cluster, namespace, failed_only).await?
+        }
     }
 
     Ok(())

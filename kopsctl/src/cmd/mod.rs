@@ -15,4 +15,5 @@
 //
 
 pub mod ping;
+pub mod pods;
 pub mod version;

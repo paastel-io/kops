@@ -16,7 +16,7 @@
 
 use std::sync::Arc;
 
-use kops_protocol::{PodsRequest, Request, Response};
+use kops_protocol::{PodSummary, PodsRequest, Request, Response};
 
 use crate::state::DaemonState;
 
@@ -66,31 +66,40 @@ impl Handler {
             };
         };
 
-        let map = cluster_state.pods.read().await;
+        let mut pods: Vec<PodSummary> = Vec::new();
+        let pods_snapshot = cluster_state.store().state();
+        for pod in pods_snapshot {
+            if let Some(summary) = PodSummary::from_pod(cluster_name, &pod) {
+                pods.push(summary);
+            }
+        }
 
-        let mut pods: Vec<_> = map
-            .values()
-            .cloned()
-            .filter(|p| {
-                if let Some(ns) = &req.namespace {
-                    if &p.namespace != ns {
-                        return false;
-                    }
-                }
-                if req.failed_only {
-                    if p.phase.as_deref() != Some("Failed")
-                        && p.reason.as_deref() != Some("CrashLoopBackOff")
-                    {
-                        return false;
-                    }
-                }
-                true
-            })
-            .collect();
+        // // let map = cluster_state.pods.read().await;
+        // let map = cluster_state.store().state();
 
-        pods.sort_by(|a, b| {
-            a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
-        });
+        // let mut pods: Vec<_> = map
+        //     .values()
+        //     .cloned()
+        //     .filter(|p| {
+        //         if let Some(ns) = &req.namespace {
+        //             if &p.namespace != ns {
+        //                 return false;
+        //             }
+        //         }
+        //         if req.failed_only {
+        //             if p.phase.as_deref() != Some("Failed")
+        //                 && p.reason.as_deref() != Some("CrashLoopBackOff")
+        //             {
+        //                 return false;
+        //             }
+        //         }
+        //         true
+        //     })
+        //     .collect();
+
+        // pods.sort_by(|a, b| {
+        //     a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
+        // });
 
         Response::Pods { pods }
     }

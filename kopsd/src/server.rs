@@ -1,3 +1,4 @@
+#![allow(unused_imports)]
 //
 // Copyright (c) 2025 murilo ijanc' <murilo@ijanc.org>
 //
@@ -33,7 +34,8 @@ use kops_protocol::{
 use crate::{
     config::{self, KopsdConfig},
     handler::Handler,
-    kube_worker::start_cluster_worker,
+    // kube_worker::start_cluster_worker,
+    kube_worker::init_cluster_state,
     state::{ClusterState, DaemonState},
 };
 
@@ -63,7 +65,7 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
     rt.block_on(async move {
         let mut clusters_map = std::collections::HashMap::new();
         for c in &config.cluster {
-            let cs = Arc::new(ClusterState { pods: Default::default() });
+            let cs = init_cluster_state(c.clone()).await.unwrap();
             clusters_map.insert(c.name.clone(), cs);
         }
 
@@ -76,25 +78,25 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
         let state =
             Arc::new(DaemonState { clusters: clusters_map, default_cluster });
 
-        for c in config.cluster.clone() {
-            let cluster_name = c.name.clone();
-            let cluster_state = state
-                .clusters
-                .get(&cluster_name)
-                .cloned()
-                .expect("cluster state must exist");
+        // for c in config.cluster.clone() {
+        //     let cluster_name = c.name.clone();
+        //     let cluster_state = state
+        //         .clusters
+        //         .get(&cluster_name)
+        //         .cloned()
+        //         .expect("cluster state must exist");
 
-            task::spawn(async move {
-                if let Err(err) =
-                    start_cluster_worker(c, cluster_state, cluster_name.clone())
-                        .await
-                {
-                    error!(cluster = %cluster_name, "cluster worker failed: {err:?}");
-                }
-            });
-        }
+        //     task::spawn(async move {
+        //         if let Err(err) =
+        //             start_cluster_worker(c, cluster_state, cluster_name.clone())
+        //                 .await
+        //         {
+        //             error!(cluster = %cluster_name, "cluster worker failed: {err:?}");
+        //         }
+        //     });
+        // }
 
-    let handler = Arc::new(Handler::new(state.clone()));
+        let handler = Arc::new(Handler::new(state.clone()));
 
         _run(config, handler).await
     })

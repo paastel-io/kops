@@ -17,13 +17,13 @@
 use std::collections::HashMap;
 use std::sync::Arc;
 
-use tokio::sync::RwLock;
+use k8s_openapi::api::core::v1::Pod;
+use kube::runtime::reflector::Store;
 
-use kops_protocol::{PodKey, PodSummary};
-
+/// Logical name of the cluster (from config).
 pub type ClusterName = String;
 
-/// Global daemon state.
+/// Global daemon state shared by handlers.
 pub struct DaemonState {
     pub clusters: HashMap<ClusterName, Arc<ClusterState>>,
     pub default_cluster: ClusterName,
@@ -35,7 +35,33 @@ impl DaemonState {
     }
 }
 
+/// Per-cluster in-memory state backed by a reflector Store.
+///
+/// The Store is automatically kept up-to-date by the kube_worker
+/// background task (reflector + watcher).
 pub struct ClusterState {
-    /// In-memory cache of pods for this cluster.
-    pub pods: RwLock<HashMap<PodKey, PodSummary>>,
+    name: ClusterName,
+    store: Store<Pod>,
+}
+
+impl ClusterState {
+    /// Create a new ClusterState from a cluster name and a reflector Store.
+    pub fn new(name: ClusterName, store: Store<Pod>) -> Self {
+        Self { name, store }
+    }
+
+    /// Name of this cluster (as in config).
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    /// Access the underlying Store for this cluster.
+    ///
+    /// You can call:
+    ///   - `store.state()` para snapshot
+    ///   - `store.get(ObjectRef)` para um Pod específico
+    ///   - `store.len()`, etc.
+    pub fn store(&self) -> &Store<Pod> {
+        &self.store
+    }
 }

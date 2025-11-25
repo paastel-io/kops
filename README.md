@@ -15,4 +15,4 @@
 | ------- | ------ |
 | ping    | ok     |
 | version | ok     |
-| pods | ok     |
+| pods    | ok     |

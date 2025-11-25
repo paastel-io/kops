@@ -966,6 +966,7 @@ name = "kops_protocol"
 version = "0.1.0"
 dependencies = [
  "bincode",
+ "k8s-openapi",
  "tokio",
 ]
 

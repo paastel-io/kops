@@ -14,6 +14,7 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
+pub mod env;
 pub mod ping;
 pub mod pods;
 pub mod version;

@@ -47,6 +47,23 @@ enum Command {
         #[arg(long)]
         failed_only: bool,
     },
+
+    Env {
+        #[arg(long)]
+        cluster: Option<String>,
+
+        #[arg(long)]
+        namespace: String,
+
+        #[arg(long)]
+        pod: String,
+
+        #[arg(long)]
+        container: Option<String>,
+
+        #[arg(long)]
+        filter: Option<String>,
+    },
 }
 
 #[derive(Debug, Parser)]
@@ -80,6 +97,10 @@ async fn main() -> Result<()> {
         Command::Version => cmd::version::execute().await?,
         Command::Pods { cluster, namespace, failed_only } => {
             cmd::pods::execute(cluster, namespace, failed_only).await?
+        }
+        Command::Env { cluster, namespace, pod, container, filter } => {
+            cmd::env::execute(cluster, namespace, pod, container, filter)
+                .await?
         }
     }
 

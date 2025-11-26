@@ -28,6 +28,7 @@ pub enum Request {
     Ping,
 
     Pods(PodsRequest),
+    Env(EnvRequest),
 
     /// Version
     Version,
@@ -45,10 +46,29 @@ pub enum Response {
         pods: Vec<PodSummary>,
     },
 
+    EnvVars {
+        vars: Vec<EnvEntry>,
+    },
+
     /// Error
     Error {
         message: String,
     },
+}
+
+#[derive(Debug, Decode, Encode)]
+pub struct EnvRequest {
+    pub cluster: Option<String>,
+    pub namespace: String,
+    pub pod: String,
+    pub container: Option<String>,
+    pub filter_regex: Option<String>,
+}
+
+#[derive(Debug, Decode, Encode)]
+pub struct EnvEntry {
+    pub name: String,
+    pub value: Option<String>,
 }
 
 #[derive(Debug, Encode, Decode)]

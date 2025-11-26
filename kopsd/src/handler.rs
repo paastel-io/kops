@@ -16,7 +16,11 @@
 
 use std::sync::Arc;
 
-use kops_protocol::{PodSummary, PodsRequest, Request, Response};
+use k8s_openapi::api::core::v1::Pod;
+use kops_protocol::{
+    EnvEntry, EnvRequest, PodSummary, PodsRequest, Request, Response,
+};
+use kube::ResourceExt;
 
 use crate::state::DaemonState;
 
@@ -34,7 +38,94 @@ impl Handler {
             Request::Ping => Response::Pong,
             Request::Version => self.handle_version().await,
             Request::Pods(p) => self.handle_pods(p).await,
+            Request::Env(r) => self.handle_env(r).await,
         }
+    }
+
+    async fn handle_env(&self, req: EnvRequest) -> Response {
+        let cluster = req
+            .cluster
+            .as_deref()
+            .unwrap_or_else(|| self.state.default_cluster());
+
+        let Some(cs) = self.state.clusters.get(cluster) else {
+            return Response::Error {
+                message: format!("cluster not found: {cluster}"),
+            };
+        };
+
+        // snapshot atual do cluster
+        let pods = cs.store().state();
+
+        // encontrar o pod
+        let pod: Option<Arc<Pod>> = pods
+            .iter()
+            .find(|p| {
+                p.namespace().as_deref() == Some(&req.namespace)
+                    && p.name_any() == req.pod
+            })
+            .cloned();
+
+        let Some(pod) = pod else {
+            return Response::Error {
+                message: format!(
+                    "pod {}/{} not found",
+                    req.namespace, req.pod
+                ),
+            };
+        };
+
+        // selecionar container
+        let spec = match &pod.spec {
+            Some(s) => s,
+            None => {
+                return Response::Error { message: "pod has no spec".into() };
+            }
+        };
+
+        let container_name = req.container.clone().unwrap_or_else(|| {
+            spec.containers[0].name.clone() // default: first container
+        });
+
+        let container =
+            match spec.containers.iter().find(|c| c.name == container_name) {
+                Some(c) => c,
+                None => {
+                    return Response::Error {
+                        message: format!(
+                            "container '{}' not found in pod {}",
+                            container_name, req.pod
+                        ),
+                    };
+                }
+            };
+
+        // filtrar vars
+        // let regex = match req.filter_regex {
+        //     Some(r) => Some(match Regex::new(&r) {
+        //         Ok(re) => re,
+        //         Err(err) => {
+        //             return Response::Error {
+        //                 message: format!("invalid regex: {err}"),
+        //             };
+        //         }
+        //     }),
+        //     None => None,
+        // };
+
+        let vars: Vec<EnvEntry> = container
+            .env
+            .clone()
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|_e| {
+                // if let Some(re) = &regex { re.is_match(&e.name) } else { true }
+                true
+            })
+            .map(|e| EnvEntry { name: e.name, value: e.value })
+            .collect();
+
+        Response::EnvVars { vars }
     }
 
     async fn handle_version(&self) -> Response {

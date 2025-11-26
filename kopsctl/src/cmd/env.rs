@@ -16,31 +16,64 @@
 
 use anyhow::{Result, bail};
 
-use kops_protocol::{EnvEntry, EnvRequest, Request, Response};
+use dialoguer::FuzzySelect;
+use kops_protocol::{EnvEntry, EnvRequest, PodsRequest, Request, Response};
 
 use crate::helper::send_request;
 
 pub async fn execute(
     cluster: Option<String>,
-    namespace: String,
-    pod: String,
+    namespace: Option<String>,
+    _pod: Option<String>,
     container: Option<String>,
     filter: Option<String>,
 ) -> Result<()> {
-    let resp = send_request(Request::Env(EnvRequest {
-        cluster,
+    let req = PodsRequest {
+        cluster: cluster.clone(),
         namespace,
-        pod,
-        container,
-        filter_regex: filter,
-    }))
-    .await?;
+        failed_only: false,
+    };
+    let resp = send_request(Request::Pods(req)).await?;
 
     match resp {
-        Response::EnvVars { vars } => print_vars(&vars),
-        Response::Error { message } => bail!("reponse error {message}"),
+        Response::Pods { pods } => {
+            let items: Vec<String> = pods
+                .iter()
+                .map(|p| format!("{} / {}", p.namespace, p.name))
+                .collect();
+
+            let selection = FuzzySelect::new()
+                .with_prompt("Select pod")
+                .items(&items)
+                .interact()
+                .unwrap();
+
+            let item = &items[selection];
+            let item: Vec<&str> = item.split('/').collect();
+
+            if item.len() != 2 {
+                bail!("unexpected response to version");
+            };
+
+            let resp = send_request(Request::Env(EnvRequest {
+                cluster,
+                namespace: item[0].trim().to_string(),
+                pod: item[1].trim().to_string(),
+                container,
+                filter_regex: filter,
+            }))
+            .await?;
+
+            match resp {
+                Response::EnvVars { vars } => print_vars(&vars),
+                Response::Error { message } => {
+                    bail!("reponse error {message}")
+                }
+                _ => bail!("unexpected response to version"),
+            }
+        }
         _ => bail!("unexpected response to version"),
-    }
+    };
 
     Ok(())
 }

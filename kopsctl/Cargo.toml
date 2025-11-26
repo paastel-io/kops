@@ -15,6 +15,7 @@ description.workspace = true
 [dependencies]
 anyhow.workspace = true
 clap.workspace = true
+dialoguer.workspace = true
 kops_log.workspace = true
 kops_protocol.workspace = true
 tokio.workspace = true

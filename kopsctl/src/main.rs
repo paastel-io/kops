@@ -53,10 +53,10 @@ enum Command {
         cluster: Option<String>,
 
         #[arg(long)]
-        namespace: String,
+        namespace: Option<String>,
 
         #[arg(long)]
-        pod: String,
+        pod: Option<String>,
 
         #[arg(long)]
         container: Option<String>,

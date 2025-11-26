@@ -37,10 +37,12 @@ pub async fn execute(
 
     match resp {
         Response::Pods { pods } => {
-            let items: Vec<String> = pods
+            let mut items: Vec<String> = pods
                 .iter()
                 .map(|p| format!("{} / {}", p.namespace, p.name))
                 .collect();
+
+            items.sort();
 
             let selection = FuzzySelect::new()
                 .with_prompt("Select pod")

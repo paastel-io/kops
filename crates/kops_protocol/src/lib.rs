@@ -65,7 +65,7 @@ pub struct EnvRequest {
     pub filter_regex: Option<String>,
 }
 
-#[derive(Debug, Decode, Encode)]
+#[derive(Debug, Decode, Encode, Ord, Eq, PartialOrd, PartialEq)]
 pub struct EnvEntry {
     pub name: String,
     pub value: Option<String>,

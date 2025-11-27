@@ -1,0 +1,13 @@
+[package]
+name = "kops_aws_sso"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-ssooidc = "1"
+aws-sdk-sso = "1"
+aws-credential-types = "1"
+chrono = { version = "0.4", features = ["clock", "serde"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time"] }

@@ -29,7 +29,7 @@ pub async fn execute(
     let resp = send_request(Request::Pods(req)).await?;
 
     match resp {
-        Response::Pods { pods } => print_pods(&pods),
+        Response::Pods { pods } => print_pods(&pods, failed_only),
         Response::Error { message } => bail!("reponse error {message}"),
         _ => bail!("unexpected response to version"),
     }
@@ -37,16 +37,31 @@ pub async fn execute(
     Ok(())
 }
 
-fn print_pods(pods: &Vec<PodSummary>) {
+fn print_pods(pods: &Vec<PodSummary>, failed_only: bool) {
     println!(
         "{:<20} {:<20} {:<30} {:<10} {:<10}",
         "CLUSTER", "NAMESPACE", "NAME", "READY", "RESTARTS"
     );
 
     for p in pods {
-        println!(
-            "{:<20} {:<20} {:<30} {:<10} {:<10}",
-            p.cluster, p.namespace, p.name, p.ready, p.restart_count
-        );
+        if failed_only {
+            if let Some(msg) = &p.message {
+                println!(
+                    "{:<20} {:<20} {:<30} {:<10} {:<10} {:<10}",
+                    p.cluster, p.namespace, p.name, p.ready, p.restart_count, msg
+                );
+            } else {
+                println!(
+                    "{:<20} {:<20} {:<30} {:<10} {:<10}",
+                    p.cluster, p.namespace, p.name, p.ready, p.restart_count,
+                );
+            }
+
+        } else {
+            println!(
+                "{:<20} {:<20} {:<30} {:<10} {:<10}",
+                p.cluster, p.namespace, p.name, p.ready, p.restart_count
+            );
+        }
     }
 }

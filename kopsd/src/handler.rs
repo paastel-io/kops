@@ -176,40 +176,42 @@ impl Handler {
             };
         };
 
-        let mut pods: Vec<PodSummary> = Vec::new();
+        // let mut pods: Vec<PodSummary> = Vec::new();
         let pods_snapshot = cluster_state.store().state();
-        for pod in pods_snapshot {
-            if let Some(summary) = PodSummary::from_pod(cluster_name, &pod) {
-                pods.push(summary);
-            }
-        }
+        // for pod in pods_snapshot {
+        //     if let Some(summary) = PodSummary::from_pod(cluster_name, &pod) {
+        //         pods.push(summary);
+        //     }
+        // }
 
         // // let map = cluster_state.pods.read().await;
         // let map = cluster_state.store().state();
 
-        // let mut pods: Vec<_> = map
-        //     .values()
-        //     .cloned()
-        //     .filter(|p| {
-        //         if let Some(ns) = &req.namespace {
-        //             if &p.namespace != ns {
-        //                 return false;
-        //             }
-        //         }
-        //         if req.failed_only {
-        //             if p.phase.as_deref() != Some("Failed")
-        //                 && p.reason.as_deref() != Some("CrashLoopBackOff")
-        //             {
-        //                 return false;
-        //             }
-        //         }
-        //         true
-        //     })
-        //     .collect();
+        let mut pods: Vec<PodSummary> = pods_snapshot
+            .into_iter()
+            .filter_map(|p| {
+                PodSummary::from_pod(cluster_name, &p)
+            })
+            .filter(|p| {
+                if let Some(ns) = &req.namespace {
+                    if &p.namespace != ns {
+                        return false;
+                    }
+                }
+                if req.failed_only {
+                    if p.phase.as_deref() != Some("Failed")
+                        && p.reason.as_deref() != Some("CrashLoopBackOff")
+                    {
+                        return false;
+                    }
+                }
+                true
+            })
+            .collect();
 
-        // pods.sort_by(|a, b| {
-        //     a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
-        // });
+        pods.sort_by(|a, b| {
+            a.namespace.cmp(&b.namespace).then(a.name.cmp(&b.name))
+        });
 
         Response::Pods { pods }
     }

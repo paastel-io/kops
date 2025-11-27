@@ -16,3 +16,4 @@
 | ping    | ok     |
 | version | ok     |
 | pods    | ok     |
+| env     | ok     |

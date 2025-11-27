@@ -83,22 +83,41 @@ impl Handler {
             }
         };
 
-        let container_name = req.container.clone().unwrap_or_else(|| {
-            spec.containers[0].name.clone() // default: first container
-        });
+        let mut vars: Vec<EnvEntry> = Vec::new();
 
-        let container =
-            match spec.containers.iter().find(|c| c.name == container_name) {
-                Some(c) => c,
-                None => {
-                    return Response::Error {
-                        message: format!(
-                            "container '{}' not found in pod {}",
-                            container_name, req.pod
-                        ),
-                    };
-                }
-            };
+        // let container_name = req.container.clone().unwrap_or_else(|| {
+        //     spec.containers[0].name.clone() // default: first container
+        // });
+
+        for container in spec.containers.clone() {
+            let container_vars: Vec<EnvEntry> = container
+                .env
+                .clone()
+                .unwrap_or_default()
+                .into_iter()
+                .filter(|_e| {
+                    // if let Some(re) = &regex { re.is_match(&e.name) } else { true }
+                    true
+                })
+                .map(|e| EnvEntry { name: e.name, value: e.value })
+                .collect();
+            vars.extend(container_vars);
+        }
+
+        vars.sort();
+
+        // let container =
+        //     match spec.containers.iter().find(|c| c.name == container_name) {
+        //         Some(c) => c,
+        //         None => {
+        //             return Response::Error {
+        //                 message: format!(
+        //                     "container '{}' not found in pod {}",
+        //                     container_name, req.pod
+        //                 ),
+        //             };
+        //         }
+        //     };
 
         // filtrar vars
         // let regex = match req.filter_regex {
@@ -113,17 +132,17 @@ impl Handler {
         //     None => None,
         // };
 
-        let vars: Vec<EnvEntry> = container
-            .env
-            .clone()
-            .unwrap_or_default()
-            .into_iter()
-            .filter(|_e| {
-                // if let Some(re) = &regex { re.is_match(&e.name) } else { true }
-                true
-            })
-            .map(|e| EnvEntry { name: e.name, value: e.value })
-            .collect();
+        // let vars: Vec<EnvEntry> = container
+        //     .env
+        //     .clone()
+        //     .unwrap_or_default()
+        //     .into_iter()
+        //     .filter(|_e| {
+        //         // if let Some(re) = &regex { re.is_match(&e.name) } else { true }
+        //         true
+        //     })
+        //     .map(|e| EnvEntry { name: e.name, value: e.value })
+        //     .collect();
 
         Response::EnvVars { vars }
     }

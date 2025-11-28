@@ -36,6 +36,7 @@ impl Handler {
     pub async fn handle(&self, req: Request) -> Response {
         match req {
             Request::Ping => Response::Pong,
+            Request::Login => Response::LoginOk,
             Request::Version => self.handle_version().await,
             Request::Pods(p) => self.handle_pods(p).await,
             Request::Env(r) => self.handle_env(r).await,
@@ -189,9 +190,7 @@ impl Handler {
 
         let mut pods: Vec<PodSummary> = pods_snapshot
             .into_iter()
-            .filter_map(|p| {
-                PodSummary::from_pod(cluster_name, &p)
-            })
+            .filter_map(|p| PodSummary::from_pod(cluster_name, &p))
             .filter(|p| {
                 if let Some(ns) = &req.namespace {
                     if &p.namespace != ns {

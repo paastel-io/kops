@@ -14,8 +14,24 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-pub mod env;
-pub mod login;
-pub mod ping;
-pub mod pods;
-pub mod version;
+use anyhow::{Result, bail};
+
+use kops_protocol::{Request, Response};
+
+use crate::helper::send_request;
+
+pub async fn execute() -> Result<()> {
+    let resp = send_request(Request::Login).await?;
+
+    match resp {
+        Response::LoginOk => print_login_info(),
+        Response::Error { message } => bail!("reponse error {message}"),
+        _ => bail!("unexpected response to version"),
+    }
+
+    Ok(())
+}
+
+fn print_login_info() {
+    println!("login ok");
+}

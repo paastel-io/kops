@@ -34,6 +34,9 @@ enum Command {
     /// Ping the daemon and expect a Pong response.
     Ping,
 
+    /// Login to the aws
+    Login,
+
     /// Show daemon and protocol version
     Version,
 
@@ -94,6 +97,7 @@ async fn main() -> Result<()> {
 
     match args.command {
         Command::Ping => cmd::ping::execute().await?,
+        Command::Login => cmd::login::execute().await?,
         Command::Version => cmd::version::execute().await?,
         Command::Pods { cluster, namespace, failed_only } => {
             cmd::pods::execute(cluster, namespace, failed_only).await?

@@ -27,6 +27,8 @@ pub enum Request {
     /// Health-check: the daemon must reply with `Response::Pong`.
     Ping,
 
+    Login,
+
     Pods(PodsRequest),
     Env(EnvRequest),
 
@@ -39,6 +41,8 @@ pub enum Request {
 pub enum Response {
     /// Response for `Request::Ping`,
     Pong,
+
+    LoginOk,
 
     Version(VersionInfo),
 

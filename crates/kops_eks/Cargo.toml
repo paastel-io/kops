@@ -1,0 +1,24 @@
+[package]
+name = "kops_eks"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1"
+aws-config = { version = "1", features = ["behavior-version-latest"] }
+aws-sdk-eks = "1"
+aws-credential-types = "1"
+aws-sigv4 = "1"
+http = "1"
+base64 = "0.22"
+kube = { version = "0.91", features = ["client", "rustls-tls"] }
+k8s-openapi = { version = "0.22", features = ["v1_30"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread"] }
+aws-smithy-runtime-api = "1.9.2"
+rustls = { version = "0.23", default-features = false, features = ["ring"] }
+rustls-pemfile = "2"
+aws-sdk-sts = "1.94.0"
+urlencoding = "2.1"
+percent-encoding = "2.3"
+url = "2.5.7"
+pem = "3.0.6"

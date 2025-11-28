@@ -1,0 +1,19 @@
+[kops]
+default_cluster = "dev"
+
+[[cluster]]
+name = "dev"
+kubeconfig = "/home/ijanc/.kube/config"
+context = "arn:aws:eks:us-east-1:230230295059:cluster/eks-platform-dev"
+namespaces = ["default", "kube-system"]
+
+[daemon]
+user = "kopsd"
+group = "kopsd"
+
+# Optional: pid file for the daemon process
+pid_file = "/var/run/kopsd.pid"
+
+# optional: redirec stdout/err to files
+stdout = "/var/log/kopsd.log"
+stderr = "/var/log/kopsd-err.log"

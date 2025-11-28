@@ -32,10 +32,10 @@ kops_log = { version = "=0.1.0", path = "crates/kops_log" }
 kops_protocol = { version = "=0.1.0", path = "crates/kops_protocol" }
 
 anyhow = "=1.0.100"
-aws-config = { version = "1", features = ["behavior-version-latest"] }
-aws-credential-types = "1"
-aws-sdk-sso = "1"
-aws-sdk-ssooidc = "1"
+aws-config = { version = "=1.8.11", features = ["behavior-version-latest"] }
+aws-credential-types = "=1.2.10"
+aws-sdk-sso = "=1.90.0"
+aws-sdk-ssooidc = "=1.92.0"
 bincode = "=2.0.1"
 chrono = { version = "0.4", features = ["clock", "serde"] }
 clap = { version = "=4.5.53", features = ["derive", "env"] }

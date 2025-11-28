@@ -33,7 +33,8 @@ async fn main() -> Result<()> {
 
     let token = main2(cluster_name, region).await?;
 
-    let (eks_cluster_url, eks_cluster_cert) = eks_k8s_cluster_info(cluster_name).await?;
+    let (eks_cluster_url, eks_cluster_cert) =
+        eks_k8s_cluster_info(cluster_name).await?;
 
     let kubeconfig = kube::Config {
         cluster_url: eks_cluster_url,
@@ -60,8 +61,11 @@ async fn main() -> Result<()> {
     Ok(())
 }
 
-pub async fn eks_k8s_cluster_info(cluster_name: &str) -> Result<(http::Uri, Vec<Vec<u8>>)> {
-    let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+pub async fn eks_k8s_cluster_info(
+    cluster_name: &str,
+) -> Result<(http::Uri, Vec<Vec<u8>>)> {
+    let sdk_config =
+        aws_config::load_defaults(BehaviorVersion::latest()).await;
     let client = eks::Client::new(&sdk_config);
 
     let resp = client.describe_cluster().name(cluster_name).send().await?;
@@ -82,7 +86,8 @@ pub async fn eks_k8s_cluster_info(cluster_name: &str) -> Result<(http::Uri, Vec<
 }
 
 pub async fn main2(cluster_name: &str, region: &str) -> Result<String> {
-    let sdk_config = aws_config::load_defaults(BehaviorVersion::latest()).await;
+    let sdk_config =
+        aws_config::load_defaults(BehaviorVersion::latest()).await;
     let credentials = sdk_config
         .credentials_provider()
         .ok_or_else(|| anyhow!("no credentials provider in sdk_config"))?
@@ -110,8 +115,9 @@ pub async fn main2(cluster_name: &str, region: &str) -> Result<String> {
         }
     };
 
-    let url =
-        format!("https://sts.{region}.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15");
+    let url = format!(
+        "https://sts.{region}.amazonaws.com/?Action=GetCallerIdentity&Version=2011-06-15"
+    );
     let headers = vec![("x-k8s-aws-id", cluster_name)];
     let signable_request = SignableRequest::new(
         "GET",

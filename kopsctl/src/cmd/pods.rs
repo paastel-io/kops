@@ -48,7 +48,12 @@ fn print_pods(pods: &Vec<PodSummary>, failed_only: bool) {
             if let Some(msg) = &p.message {
                 println!(
                     "{:<20} {:<20} {:<30} {:<10} {:<10} {:<10}",
-                    p.cluster, p.namespace, p.name, p.ready, p.restart_count, msg
+                    p.cluster,
+                    p.namespace,
+                    p.name,
+                    p.ready,
+                    p.restart_count,
+                    msg
                 );
             } else {
                 println!(
@@ -56,7 +61,6 @@ fn print_pods(pods: &Vec<PodSummary>, failed_only: bool) {
                     p.cluster, p.namespace, p.name, p.ready, p.restart_count,
                 );
             }
-
         } else {
             println!(
                 "{:<20} {:<20} {:<30} {:<10} {:<10}",

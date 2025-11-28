@@ -128,35 +128,43 @@ where
                     break;
                 }
                 Err(e) => {
-                let code = e.code().unwrap_or("Unknown");
-                let msg  = e.message().unwrap_or("");
+                    let code = e.code().unwrap_or("Unknown");
+                    let msg = e.message().unwrap_or("");
 
-                match code {
-                    "AuthorizationPendingException" => {
-                        sleep(std::time::Duration::from_secs(interval_secs)).await;
-                        continue;
-                    }
-                    "SlowDownException" => {
-                        interval_secs += 5;
-                        sleep(std::time::Duration::from_secs(interval_secs)).await;
-                        continue;
-                    }
-                    "ExpiredTokenException" => {
-                        return Err(anyhow::anyhow!(
-                            "Device authorization expired (ExpiredTokenException): {msg}"
-                        ));
-                    }
-                    _ => {
-                        return Err(anyhow::anyhow!(
-                            "CreateToken failed: {code}: {msg}"
-                        ));
+                    match code {
+                        "AuthorizationPendingException" => {
+                            sleep(std::time::Duration::from_secs(
+                                interval_secs,
+                            ))
+                            .await;
+                            continue;
+                        }
+                        "SlowDownException" => {
+                            interval_secs += 5;
+                            sleep(std::time::Duration::from_secs(
+                                interval_secs,
+                            ))
+                            .await;
+                            continue;
+                        }
+                        "ExpiredTokenException" => {
+                            return Err(anyhow::anyhow!(
+                                "Device authorization expired (ExpiredTokenException): {msg}"
+                            ));
+                        }
+                        _ => {
+                            return Err(anyhow::anyhow!(
+                                "CreateToken failed: {code}: {msg}"
+                            ));
+                        }
                     }
                 }
             }
-            }
         }
 
-        access_token.ok_or_else(|| anyhow!("did not obtain access_token before timeout"))?
+        access_token.ok_or_else(|| {
+            anyhow!("did not obtain access_token before timeout")
+        })?
     };
 
     let sso_client = sso::Client::new(sdk_config);
@@ -174,12 +182,13 @@ where
         .ok_or_else(|| anyhow!("missing roleCredentials"))?;
 
     let access_key_id = must(role_creds.access_key_id(), "accessKeyId")?;
-    let secret_access_key = must(role_creds.secret_access_key(), "secretAccessKey")?;
+    let secret_access_key =
+        must(role_creds.secret_access_key(), "secretAccessKey")?;
     let session_token = must(role_creds.session_token(), "sessionToken")?;
 
     let expires_ms = role_creds.expiration();
-    let expires_at =
-        DateTime::<Utc>::from(SystemTime::UNIX_EPOCH) + Duration::milliseconds(expires_ms);
+    let expires_at = DateTime::<Utc>::from(SystemTime::UNIX_EPOCH)
+        + Duration::milliseconds(expires_ms);
 
     let creds = Credentials::new(
         access_key_id,
@@ -198,6 +207,5 @@ where
 }
 
 fn must(v: Option<&str>, name: &str) -> Result<String> {
-    v.ok_or_else(|| anyhow!("missing {name}"))
-        .map(|s| s.to_string())
+    v.ok_or_else(|| anyhow!("missing {name}")).map(|s| s.to_string())
 }

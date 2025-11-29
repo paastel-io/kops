@@ -63,11 +63,11 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
         .context("failed to build tokio runtime")?;
 
     rt.block_on(async move {
-        let mut clusters_map = std::collections::HashMap::new();
-        for c in &config.cluster {
-            let cs = init_cluster_state(c.clone()).await.unwrap();
-            clusters_map.insert(c.name.clone(), cs);
-        }
+        let clusters_map = std::collections::HashMap::new();
+        // for c in &config.cluster {
+        //     let cs = init_cluster_state(c.clone()).await.unwrap();
+        //     // clusters_map.insert(c.name.clone(), cs);
+        // }
 
         let default_cluster = config
             .kops
@@ -75,8 +75,15 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
             .clone()
             .unwrap_or_else(|| config.cluster[0].name.clone());
 
-        let state =
-            Arc::new(DaemonState { clusters: clusters_map, default_cluster });
+        // let state =
+        //     Arc::new(DaemonState { clusters: clusters_map, default_cluster });
+        let state = Arc::new(DaemonState {
+            clusters: clusters_map,
+            default_cluster,
+            aws_sessions: std::sync::Mutex::new(
+                std::collections::HashMap::new(),
+            ),
+        });
 
         // for c in config.cluster.clone() {
         //     let cluster_name = c.name.clone();

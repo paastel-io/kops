@@ -27,7 +27,7 @@ pub enum Request {
     /// Health-check: the daemon must reply with `Response::Pong`.
     Ping,
 
-    Login,
+    Login(LoginRequest),
 
     Pods(PodsRequest),
     Env(EnvRequest),
@@ -42,6 +42,7 @@ pub enum Response {
     /// Response for `Request::Ping`,
     Pong,
 
+    /// Login successfully registered in daemon
     LoginOk,
 
     Version(VersionInfo),
@@ -163,4 +164,31 @@ fn extract_status_fields(
     }
 
     (reason, message, ready, restarts)
+}
+
+#[derive(Debug, Encode, Decode)]
+pub struct LoginRequest {
+    /// Logical profile name, e.g. "dev" or "prod".
+    pub name: String,
+
+    /// Optional region associated with this profile.
+    pub region: Option<String>,
+
+    /// AWS account ID where this role is valid.
+    pub account_id: String,
+
+    /// IAM role name assumed via SSO.
+    pub role_name: String,
+
+    /// AWS access key ID from SSO.
+    pub access_key_id: String,
+
+    /// AWS secret access key from SSO.
+    pub secret_access_key: String,
+
+    /// Temporary session token from SSO.
+    pub session_token: String,
+
+    /// Expiration of this session as Unix epoch milliseconds (UTC).
+    pub expires_at_epoch_ms: i64,
 }

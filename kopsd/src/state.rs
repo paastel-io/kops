@@ -15,10 +15,23 @@
 //
 
 use std::collections::HashMap;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
+use chrono::{DateTime, Utc};
 use k8s_openapi::api::core::v1::Pod;
 use kube::runtime::reflector::Store;
+
+/// AWS session stored in daemon memory.
+#[derive(Clone)]
+pub struct AwsSession {
+    pub account_id: String,
+    pub role_name: String,
+    pub region: Option<String>,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub session_token: String,
+    pub expires_at: DateTime<Utc>,
+}
 
 /// Logical name of the cluster (from config).
 pub type ClusterName = String;
@@ -27,11 +40,20 @@ pub type ClusterName = String;
 pub struct DaemonState {
     pub clusters: HashMap<ClusterName, Arc<ClusterState>>,
     pub default_cluster: ClusterName,
+
+    /// AWS sessions keyed by logical profile name ("dev", "prod", ...).
+    pub aws_sessions: Mutex<HashMap<String, AwsSession>>,
 }
 
 impl DaemonState {
     pub fn default_cluster(&self) -> &str {
         &self.default_cluster
+    }
+
+    #[allow(dead_code)]
+    pub fn get_session(&self, name: &str) -> Option<AwsSession> {
+        let sessions = self.aws_sessions.lock().ok()?;
+        sessions.get(name).cloned()
     }
 }
 

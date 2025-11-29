@@ -34,8 +34,16 @@ enum Command {
     /// Ping the daemon and expect a Pong response.
     Ping,
 
-    /// Login to the aws
-    Login,
+    /// Login via AWS SSO and register credentials in kopsd
+    Login {
+        /// Logical name for this credential set (e.g. dev, prod)
+        #[arg(long)]
+        name: String,
+
+        /// AWS region for SSO (optional, defaults to config or us-east-1)
+        #[arg(long)]
+        region: Option<String>,
+    },
 
     /// Show daemon and protocol version
     Version,
@@ -97,7 +105,9 @@ async fn main() -> Result<()> {
 
     match args.command {
         Command::Ping => cmd::ping::execute().await?,
-        Command::Login => cmd::login::execute().await?,
+        Command::Login { name, region } => {
+            cmd::login::execute(name, region).await?
+        }
         Command::Version => cmd::version::execute().await?,
         Command::Pods { cluster, namespace, failed_only } => {
             cmd::pods::execute(cluster, namespace, failed_only).await?

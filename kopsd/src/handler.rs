@@ -16,13 +16,16 @@
 
 use std::sync::Arc;
 
+use chrono::{TimeZone, Utc};
 use k8s_openapi::api::core::v1::Pod;
 use kops_protocol::{
-    EnvEntry, EnvRequest, PodSummary, PodsRequest, Request, Response,
+    EnvEntry, EnvRequest, LoginRequest, PodSummary, PodsRequest, Request,
+    Response,
 };
 use kube::ResourceExt;
+use tracing::info;
 
-use crate::state::DaemonState;
+use crate::state::{AwsSession, DaemonState};
 
 pub struct Handler {
     state: Arc<DaemonState>,
@@ -36,10 +39,43 @@ impl Handler {
     pub async fn handle(&self, req: Request) -> Response {
         match req {
             Request::Ping => Response::Pong,
-            Request::Login => Response::LoginOk,
+            Request::Login(login_req) => self.handle_login(login_req).await,
             Request::Version => self.handle_version().await,
             Request::Pods(p) => self.handle_pods(p).await,
             Request::Env(r) => self.handle_env(r).await,
+        }
+    }
+
+    async fn handle_login(&self, req: LoginRequest) -> Response {
+        info!(
+            "received AWS login for profile '{}' (account {} role {})",
+            req.name, req.account_id, req.role_name
+        );
+
+        let expires_at = Utc
+            .timestamp_millis_opt(req.expires_at_epoch_ms)
+            .single()
+            .unwrap_or_else(|| Utc::now());
+
+        let session = AwsSession {
+            account_id: req.account_id,
+            role_name: req.role_name,
+            region: req.region.clone(),
+            access_key_id: req.access_key_id,
+            secret_access_key: req.secret_access_key,
+            session_token: req.session_token,
+            expires_at,
+        };
+
+        match self.state.aws_sessions.lock() {
+            Ok(mut map) => {
+                map.insert(req.name.clone(), session);
+                info!("stored AWS session for profile '{}'", req.name);
+                Response::LoginOk
+            }
+            Err(_) => Response::Error {
+                message: "failed to lock aws_sessions map".into(),
+            },
         }
     }
 

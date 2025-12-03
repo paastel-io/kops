@@ -15,7 +15,6 @@
 //
 
 use anyhow::{Result, anyhow, bail};
-use aws_config::BehaviorVersion;
 use aws_types::region::Region;
 use kops_aws_sso::{SsoLoginConfig, login_device_flow};
 use kops_protocol::{LoginRequest, Request, Response};

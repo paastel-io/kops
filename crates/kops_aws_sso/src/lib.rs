@@ -87,9 +87,9 @@ where
         .await
         .context("failed to start device authorization")?;
 
-    let verification_uri = device_auth
-        .verification_uri_complete()
-        .ok_or(anyhow!("missing verification URI"))?;
+    // let _verification_uri = device_auth
+    //     .verification_uri_complete()
+    //     .ok_or(anyhow!("missing verification URI"))?;
 
     let device_code = must(device_auth.device_code(), "device_code")?;
     let verification_uri = device_auth

@@ -35,6 +35,7 @@ pub struct AwsSession {
 
 /// Logical name of the cluster (from config).
 pub type ClusterName = String;
+pub type ProfileName = String;
 
 /// Global daemon state shared by handlers.
 pub struct DaemonState {
@@ -42,7 +43,7 @@ pub struct DaemonState {
     pub default_cluster: ClusterName,
 
     /// AWS sessions keyed by logical profile name ("dev", "prod", ...).
-    pub aws_sessions: Mutex<HashMap<String, AwsSession>>,
+    pub aws_sessions: Mutex<HashMap<ProfileName, AwsSession>>,
 }
 
 impl DaemonState {

@@ -14,8 +14,6 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-// kopsd/src/kube_worker.rs
-
 use std::sync::Arc;
 
 use anyhow::Result;
@@ -39,11 +37,12 @@ use crate::state::{ClusterName, ClusterState};
 /// Initialize a ClusterState for a given cluster config and start
 /// a background reflector task to keep the Store<Pod> up-to-date.
 pub async fn init_cluster_state(
-    cfg: ClusterConfig,
+    cluster_name: ClusterName,
+    client: Client,
 ) -> Result<Arc<ClusterState>> {
-    let cluster_name: ClusterName = cfg.name.clone();
+    // let cluster_name: ClusterName = cfg.name.clone();
 
-    let client = build_client_for_cluster(&cfg).await?;
+    // let client = build_client_for_cluster(&cfg).await?;
 
     let pods_api: Api<Pod> = Api::all(client);
 

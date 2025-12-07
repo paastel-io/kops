@@ -15,7 +15,11 @@
 // OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 //
 
-use std::{os::unix::fs::PermissionsExt, sync::Arc};
+use std::{
+    collections::HashMap,
+    os::unix::fs::PermissionsExt,
+    sync::{Arc, Mutex},
+};
 
 use anyhow::{Context, Result};
 use daemonize::Daemonize;
@@ -63,7 +67,6 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
         .context("failed to build tokio runtime")?;
 
     rt.block_on(async move {
-        let clusters_map = std::collections::HashMap::new();
         // for c in &config.cluster {
         //     let cs = init_cluster_state(c.clone()).await.unwrap();
         //     // clusters_map.insert(c.name.clone(), cs);
@@ -78,11 +81,9 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
         // let state =
         //     Arc::new(DaemonState { clusters: clusters_map, default_cluster });
         let state = Arc::new(DaemonState {
-            clusters: clusters_map,
+            clusters: HashMap::new(),
             default_cluster,
-            aws_sessions: std::sync::Mutex::new(
-                std::collections::HashMap::new(),
-            ),
+            aws_sessions: Mutex::new(HashMap::new()),
         });
 
         // for c in config.cluster.clone() {

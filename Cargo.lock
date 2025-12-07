@@ -1811,20 +1811,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "kops_aws_sso"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "aws-config",
- "aws-credential-types",
- "aws-sdk-sso",
- "aws-sdk-ssooidc",
- "chrono",
- "tokio",
-]
-
-[[package]]
-name = "kops_eks"
+name = "kops_aws_eks"
 version = "0.1.0"
 dependencies = [
  "anyhow",
@@ -1845,6 +1832,19 @@ dependencies = [
  "tokio",
  "url",
  "urlencoding",
+]
+
+[[package]]
+name = "kops_aws_sso"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "aws-config",
+ "aws-credential-types",
+ "aws-sdk-sso",
+ "aws-sdk-ssooidc",
+ "chrono",
+ "tokio",
 ]
 
 [[package]]

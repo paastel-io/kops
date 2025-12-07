@@ -28,6 +28,7 @@ unused_unsafe = "warn"
 all = { level = "warn", priority = -1 }
 
 [workspace.dependencies]
+kops_aws_eks = { version = "=0.1.0", path = "crates/kops_aws_eks" }
 kops_aws_sso = { version = "=0.1.0", path = "crates/kops_aws_sso" }
 kops_log = { version = "=0.1.0", path = "crates/kops_log" }
 kops_protocol = { version = "=0.1.0", path = "crates/kops_protocol" }

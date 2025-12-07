@@ -67,16 +67,37 @@ impl Handler {
             expires_at,
         };
 
-        match self.state.aws_sessions.lock() {
-            Ok(mut map) => {
-                map.insert(req.name.clone(), session);
-                info!("stored AWS session for profile '{}'", req.name);
-                Response::LoginOk
-            }
-            Err(_) => Response::Error {
-                message: "failed to lock aws_sessions map".into(),
-            },
+        {
+            let mut map = match self.state.aws_sessions.lock() {
+                Ok(m) => m,
+                Err(_) => {
+                    return Response::Error {
+                        message: "failed to lock aws_sessions map".into(),
+                    };
+                }
+            };
+
+            map.insert(req.name.clone(), session);
+            info!("stored AWS session for profile '{}'", req.name);
         }
+
+        if let Err(err) = self.start_clusters_for_profile(&req.name).await {
+            return Response::Error {
+                message: format!(
+                    "stored session but failed to start clusters for profile {}: {err}",
+                    req.name
+                ),
+            };
+        }
+
+        Response::LoginOk
+    }
+
+    async fn start_clusters_for_profile(
+        &self,
+        _profile: &str,
+    ) -> anyhow::Result<()> {
+        Ok(())
     }
 
     async fn handle_env(&self, req: EnvRequest) -> Response {

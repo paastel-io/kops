@@ -17,32 +17,31 @@
 use std::time::{Duration, SystemTime};
 
 use anyhow::{Context, Result, anyhow};
-use aws_config::BehaviorVersion;
+use aws_config::SdkConfig;
 use aws_credential_types::provider::ProvideCredentials;
 use aws_sdk_eks as eks;
 use aws_sigv4::http_request::{
-SignatureLocation,
-    SignableBody, SignableRequest, SigningSettings,
+    SignableBody, SignableRequest, SignatureLocation, SigningSettings,
 };
 use aws_smithy_runtime_api::client::identity::Identity;
-use base64::{Engine, engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD}};
-use k8s_openapi::api::core::v1::Pod;
-use kube::Api;
+use base64::{
+    Engine,
+    engine::general_purpose::{STANDARD, URL_SAFE_NO_PAD},
+};
 use rustls::crypto::aws_lc_rs;
 
-#[tokio::main]
-async fn main() -> Result<()> {
+pub async fn create_kube_client(
+    sdk_config: &SdkConfig,
+    cluster_name: &str,
+) -> Result<kube::Client> {
     aws_lc_rs::default_provider()
         .install_default()
         .expect("failed to install aws-lc provider");
 
-    let region = "us-east-1";
-    let cluster_name = "my-cluster";
-
-    let token = main2(cluster_name, region).await?;
-
     let (eks_cluster_url, eks_cluster_cert) =
-        eks_k8s_cluster_info(cluster_name).await?;
+        eks_k8s_cluster_info(sdk_config, cluster_name).await?;
+
+    let token = create_cluster_token(sdk_config, cluster_name).await?;
 
     let kubeconfig = kube::Config {
         cluster_url: eks_cluster_url,
@@ -61,19 +60,13 @@ async fn main() -> Result<()> {
     };
 
     let client = kube::Client::try_from(kubeconfig)?;
-    let pods: Api<Pod> = Api::namespaced(client, "observability");
-    for p in pods.list(&Default::default()).await?.items {
-        println!("{}", p.metadata.name.unwrap_or_default());
-    }
-
-    Ok(())
+    Ok(client)
 }
 
 pub async fn eks_k8s_cluster_info(
+    sdk_config: &SdkConfig,
     cluster_name: &str,
 ) -> Result<(http::Uri, Vec<Vec<u8>>)> {
-    let sdk_config =
-        aws_config::load_defaults(BehaviorVersion::latest()).await;
     let client = eks::Client::new(&sdk_config);
 
     let resp = client.describe_cluster().name(cluster_name).send().await?;
@@ -93,15 +86,17 @@ pub async fn eks_k8s_cluster_info(
     Ok((endpoint, [cert].to_vec()))
 }
 
-pub async fn main2(cluster_name: &str, region: &str) -> Result<String> {
-    let sdk_config =
-        aws_config::load_defaults(BehaviorVersion::latest()).await;
+async fn create_cluster_token(
+    sdk_config: &SdkConfig,
+    cluster_name: &str,
+) -> Result<String> {
     let credentials = sdk_config
         .credentials_provider()
         .ok_or_else(|| anyhow!("no credentials provider in sdk_config"))?
         .provide_credentials()
         .await
         .context("failed to provide AWS credentials")?;
+    let region = sdk_config.region().unwrap();
 
     let mut signing_settings = SigningSettings::default();
     signing_settings.expires_in = Some(Duration::from_secs(60));
@@ -111,7 +106,7 @@ pub async fn main2(cluster_name: &str, region: &str) -> Result<String> {
 
     let signing_params = match aws_sigv4::sign::v4::SigningParams::builder()
         .identity(&identity)
-        .region(region)
+        .region(region.as_ref())
         .name("sts")
         .time(SystemTime::now())
         .settings(signing_settings)

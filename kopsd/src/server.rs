@@ -81,7 +81,7 @@ fn run_fg(config: &KopsdConfig) -> Result<()> {
         // let state =
         //     Arc::new(DaemonState { clusters: clusters_map, default_cluster });
         let state = Arc::new(DaemonState {
-            clusters: HashMap::new(),
+            clusters: Mutex::new(HashMap::new()),
             default_cluster,
             aws_sessions: Mutex::new(HashMap::new()),
         });

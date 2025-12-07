@@ -38,7 +38,7 @@ use crate::state::{ClusterName, ClusterState};
 /// a background reflector task to keep the Store<Pod> up-to-date.
 pub async fn init_cluster_state(
     cluster_name: ClusterName,
-    client: Client,
+    client: kube::Client,
 ) -> Result<Arc<ClusterState>> {
     // let cluster_name: ClusterName = cfg.name.clone();
 

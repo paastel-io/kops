@@ -57,6 +57,8 @@ pub async fn create_kube_client(
         write_timeout: None,
         proxy_url: None,
         tls_server_name: None,
+        disable_compression: false,
+        headers: Vec::new(),
     };
 
     let client = kube::Client::try_from(kubeconfig)?;

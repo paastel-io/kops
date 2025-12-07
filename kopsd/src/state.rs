@@ -39,7 +39,7 @@ pub type ProfileName = String;
 
 /// Global daemon state shared by handlers.
 pub struct DaemonState {
-    pub clusters: HashMap<ClusterName, Arc<ClusterState>>,
+    pub clusters: Mutex<HashMap<ClusterName, Arc<ClusterState>>>,
     pub default_cluster: ClusterName,
 
     /// AWS sessions keyed by logical profile name ("dev", "prod", ...).

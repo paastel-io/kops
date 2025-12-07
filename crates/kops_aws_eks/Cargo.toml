@@ -14,7 +14,7 @@ aws-smithy-runtime-api = "1.9.2"
 base64 = "0.22"
 http = "1"
 k8s-openapi = { version = "0.22", features = ["v1_30"] }
-kube = { version = "0.91", features = ["client", "rustls-tls"] }
+kube.workspace = true
 pem = "3.0.6"
 percent-encoding = "2.3"
 rustls = { version = "0.23", default-features = false, features = ["ring"] }

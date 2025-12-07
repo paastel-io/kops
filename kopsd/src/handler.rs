@@ -15,6 +15,7 @@
 //
 
 use std::sync::Arc;
+use anyhow::Context;
 
 use chrono::{TimeZone, Utc};
 use k8s_openapi::api::core::v1::Pod;
@@ -95,10 +96,60 @@ impl Handler {
 
     async fn start_clusters_for_profile(
         &self,
-        _profile: &str,
+        profile: &str,
     ) -> anyhow::Result<()> {
+        let session = {
+            let map = self
+                .state
+                .aws_sessions
+                .lock()
+                .unwrap();
+                // .context("failed to lock aws_sessions map")?;
+
+            map.get(profile)
+                .cloned()
+                .context("no aws session stored for this profile")?
+        };
+
+        // for (name, cfg) in &self.state.clusters {
+            // if cfg.session_name != profile {
+            //     continue;
+            // }
+
+            // // Se cluster já está rodando, não faz nada
+            // if self.state.clusters.contains_key(name) {
+            //     continue;
+            // }
+
+        let name = String::from("eks-platform-dev");
+            tracing::info!(
+                "starting cluster worker for cluster '{}' (profile '{}')",
+                name,
+                profile
+            );
+
+            let sdk_config = sdk_config_from_session(&session).await?;
+
+            let client = kops_aws_eks::create_kube_client(&sdk_config, &name)
+                .await
+                .with_context(|| format!("failed to create kube client for cluster {}", name))?;
+
+            let cluster_state = crate::kube_worker::init_cluster_state(name.clone(), client)
+                .await
+                .with_context(|| format!("failed to start worker for cluster {}", name))?;
+
+            self.state
+    .clusters
+    .lock()
+    .unwrap()
+    .insert(name.clone(), cluster_state);
+
+        // }
+
         Ok(())
     }
+
+
 
     async fn handle_env(&self, req: EnvRequest) -> Response {
         let cluster = req
@@ -106,7 +157,8 @@ impl Handler {
             .as_deref()
             .unwrap_or_else(|| self.state.default_cluster());
 
-        let Some(cs) = self.state.clusters.get(cluster) else {
+        let clusters = self.state.clusters.lock().unwrap();
+        let Some(cs) = clusters.get(cluster) else {
             return Response::Error {
                 message: format!("cluster not found: {cluster}"),
             };
@@ -228,7 +280,8 @@ impl Handler {
             .as_deref()
             .unwrap_or_else(|| self.state.default_cluster());
 
-        let Some(cluster_state) = self.state.clusters.get(cluster_name) else {
+        let clusters = self.state.clusters.lock().unwrap();
+        let Some(cluster_state) = clusters.get(cluster_name) else {
             return Response::Error {
                 message: format!("cluster not found: {cluster_name}"),
             };
@@ -290,4 +343,39 @@ impl Handler {
 
     //     // Response::ResetOk
     // }
+}
+
+use aws_config::{Region, SdkConfig};
+use aws_credential_types::{provider::SharedCredentialsProvider, Credentials};
+
+pub async fn sdk_config_from_session(
+    session: &AwsSession,
+) -> anyhow::Result<SdkConfig> {
+    // 1. Cria objeto Credentials a partir da sessão
+    let creds = Credentials::new(
+        session.access_key_id.clone(),
+        session.secret_access_key.clone(),
+        Some(session.session_token.clone()),
+        Some(session.expires_at.into()),
+        "kops-sso-session-dev",
+    );
+
+    let creds_provider = SharedCredentialsProvider::new(creds);
+
+    // 2. Resolve região
+    let region = session
+        .region
+        .clone()
+        .unwrap_or_else(|| "us-east-1".to_string());
+
+    let region = Region::new(region);
+
+    // 3. Monta o SdkConfig manualmente
+    let sdk_config = aws_config::from_env()
+        .region(region)
+        .credentials_provider(creds_provider)
+        .load()
+        .await;
+
+    Ok(sdk_config)
 }
